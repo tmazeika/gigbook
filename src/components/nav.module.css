@@ -1,0 +1,18 @@
+.navItems {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.navItem {
+  display: block;
+  padding: 1em 2em;
+}
+
+.navItem:hover {
+  background-color: aliceblue;
+}
+
+.navItem.active {
+  background-color: lightblue;
+}
