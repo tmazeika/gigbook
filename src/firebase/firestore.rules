@@ -20,7 +20,7 @@ service cloud.firestore {
 
       function validUser() {
         let data = request.resource.data;
-        return data.keys().hasOnly(['clients']) && ('clients' in data.clients && data.clients is list);
+        return data.keys().hasOnly(['clients']) && (!('clients' in data.clients) || data.clients is list);
       }
 
       allow read: if owner();
