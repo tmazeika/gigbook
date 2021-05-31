@@ -1,4 +1,15 @@
 .layout {
+  min-height: 100vh;
   display: flex;
-  align-items: flex-start;
+  flex-direction: column;
+}
+
+.layoutBottom {
+  flex-grow: 1;
+  display: flex;
+}
+
+.content {
+  margin: 1em;
+  flex-grow: 1;
 }

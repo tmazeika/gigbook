@@ -1,0 +1,7 @@
+.header {
+  border-bottom: 1px solid #ccc;
+  padding: 1em 2em;
+  display: flex;
+  align-items: center;
+  gap: 1em;
+}

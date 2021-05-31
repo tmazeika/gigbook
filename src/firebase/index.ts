@@ -1,4 +1,5 @@
 import { getApp, getApps, initializeApp } from 'firebase/app';
+import { getAuth, useAuthEmulator } from 'firebase/auth';
 import { getFirestore, useFirestoreEmulator } from 'firebase/firestore';
 
 const config = {
@@ -15,10 +16,12 @@ export const app = getApps().length
   : (() => {
       const app = initializeApp(config);
       if (process.env.NODE_ENV !== 'production') {
-        // eslint-disable-next-line react-hooks/rules-of-hooks
+        useAuthEmulator(getAuth(app), 'http://localhost:9099', {
+          disableWarnings: true,
+        });
         useFirestoreEmulator(getFirestore(app), 'localhost', 8080);
       }
       return app;
     })();
-
+export const auth = getAuth(app);
 export const db = getFirestore(app);

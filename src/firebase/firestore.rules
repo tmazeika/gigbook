@@ -1,18 +1,71 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function authedAs(userId) {
-      return request.auth != null && request.auth.uid == userId;
-    }
-
     match /users/{userId} {
-      allow read, write: if true;
-      //      allow read, write: if authedAs(userId);
-    }
+      function owner() {
+        return request.auth != null && request.auth.uid == userId;
+      }
 
-    match /users/{userId}/clients/{clientName} {
-      allow read, write: if true;
-      //      allow read, write: if authedAs(userId);
+      function userExistsBefore() {
+        return exists(/databases/$(database)/documents/users/$(userId));
+      }
+
+      function getUserBefore() {
+        return get(/databases/$(database)/documents/users/$(userId));
+      }
+
+      function getUserAfter() {
+        return getAfter(/databases/$(database)/documents/users/$(userId));
+      }
+
+      function validUser() {
+        let data = request.resource.data;
+        return data.keys().hasOnly(['clients']) && ('clients' in data.clients && data.clients is list);
+      }
+
+      allow read: if owner();
+      allow create: if owner() && validUser();
+      allow update: if owner() && validUser();
+      allow delete: if false;
+
+      match /clients/{clientId} {
+        function inUser(client, user) {
+          return 'clients' in user.data && client in user.data.clients;
+        }
+
+        function canCreate() {
+          let client = request.resource.data.name;
+          // client should not be in userBefore (must be unique)
+          // client should be in userAfter
+          return (!userExistsBefore() || !inUser(client, getUserBefore())) && inUser(client, getUserAfter());
+        }
+
+        function canUpdate() {
+          let oldClient = resource.data.name;
+          let newClient = request.resource.data.name;
+          let userBefore = getUserBefore();
+          let userAfter = getUserAfter();
+          // newClient should not be in userBefore (must be unique)
+          // oldClient should not be in userAfter (it got updated)
+          // newClient should be in userAfter
+          return oldClient == newClient || (!inUser(newClient, userBefore) && !inUser(oldClient, userAfter) && inUser(newClient, userAfter));
+        }
+
+        function canDelete() {
+          // client should not be in userAfter (it got deleted)
+          return !inUser(resource.data.name, getUserAfter());
+        }
+
+        function validClient() {
+          let data = request.resource.data;
+          return data.keys().hasAll(['name']) && data.name is string;
+        }
+
+        allow read: if owner();
+        allow create: if owner() && canCreate();
+        allow update: if owner() && canUpdate();
+        allow delete: if owner() && canDelete();
+      }
     }
   }
 }
