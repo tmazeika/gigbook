@@ -1,9 +1,6 @@
 import { createContext } from 'react';
-import type { User } from '../models';
 
 export interface Auth {
-  user?: User;
-
   register(email: string, password: string): Promise<void>;
 
   signIn(email: string, password: string): Promise<void>;
@@ -13,12 +10,12 @@ export interface Auth {
 
 export default createContext<Auth>({
   register() {
-    throw new Error();
+    throw 'NYI';
   },
   signIn() {
-    throw new Error();
+    throw 'NYI';
   },
   signOut() {
-    throw new Error();
+    throw 'NYI';
   },
 });

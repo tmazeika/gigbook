@@ -1,5 +1,12 @@
-import Layout from '../components/layout';
+import Head from 'next/head';
 
 export default function Index(): JSX.Element {
-  return <Layout></Layout>;
+  return (
+    <div>
+      <Head>
+        <title>GigBook</title>
+      </Head>
+      <main>Hello, world!</main>
+    </div>
+  );
 }
