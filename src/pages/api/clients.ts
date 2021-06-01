@@ -1,5 +1,6 @@
-import 'gigbook/firebase/server';
 import type { NextApiRequest, NextApiResponse } from 'next';
+
+import 'reflect-metadata';
 
 export default function handler(
   req: NextApiRequest,
