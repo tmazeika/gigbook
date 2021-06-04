@@ -1,5 +1,5 @@
-import AuthProvider from 'gigbook/components/authProvider';
 import 'gigbook/pages/_app.css';
+import { Provider } from 'next-auth/client';
 import type { AppProps } from 'next/app';
 import { SWRConfig } from 'swr';
 
@@ -12,9 +12,10 @@ export default function App({ Component, pageProps }: AppProps): JSX.Element {
         },
       }}
     >
-      <AuthProvider>
+      {/* eslint-disable-next-line @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-member-access */}
+      <Provider session={pageProps.session}>
         <Component {...pageProps} />
-      </AuthProvider>
+      </Provider>
     </SWRConfig>
   );
 }
