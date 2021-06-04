@@ -13,4 +13,7 @@ export default NextAuth({
     }),
   ],
   adapter: PrismaAdapter(prisma),
+  secret: process.env.NEXTAUTH_SECRET,
+  // TODO: make custom auth pages
+  pages: {},
 });
