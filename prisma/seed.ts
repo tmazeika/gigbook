@@ -52,10 +52,8 @@ const users: Prisma.UserCreateInput[] = [
 
 void (async (): Promise<void> => {
   try {
-    for (const user of users) {
-      await prisma.user.create({
-        data: user,
-      });
+    for (const data of users) {
+      await prisma.user.create({ data });
     }
   } catch (e) {
     console.error(e);

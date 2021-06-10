@@ -16,9 +16,9 @@ model Account {
   providerAccountId  String    @map("provider_account_id") @db.VarChar(255)
   refreshToken       String?   @map("refresh_token")
   accessToken        String?   @map("access_token")
-  accessTokenExpires DateTime? @map("access_token_expires") @db.Timestamptz(6)
-  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt          DateTime  @default(now()) @map("updated_at") @db.Timestamptz(6)
+  accessTokenExpires DateTime? @map("access_token_expires")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @default(now()) @map("updated_at")
   user               User      @relation(fields: [userId], references: [id])
 
   @@unique([providerId, providerAccountId])
@@ -29,11 +29,11 @@ model Account {
 model Session {
   id           Int      @id @default(autoincrement())
   userId       Int      @map("user_id")
-  expires      DateTime @db.Timestamptz(6)
+  expires      DateTime
   sessionToken String   @unique @map("session_token") @db.VarChar(255)
   accessToken  String   @unique @map("access_token") @db.VarChar(255)
-  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt    DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @default(now()) @map("updated_at")
   user         User     @relation(fields: [userId], references: [id])
 
   @@map("sessions")
@@ -43,10 +43,10 @@ model User {
   id            Int       @id @default(autoincrement())
   name          String?   @db.VarChar(255)
   email         String?   @unique @db.VarChar(255)
-  emailVerified DateTime? @map("email_verified") @db.Timestamptz(6)
+  emailVerified DateTime? @map("email_verified")
   image         String?
-  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt     DateTime  @default(now()) @map("updated_at") @db.Timestamptz(6)
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @default(now()) @map("updated_at")
   clients       Client[]
   accounts      Account[]
   sessions      Session[]
@@ -59,8 +59,8 @@ model VerificationRequest {
   identifier String   @db.VarChar(255)
   token      String   @unique @db.VarChar(255)
   expires    DateTime
-  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt  DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @default(now()) @map("updated_at")
 
   @@unique([identifier, token])
   @@map("verification_requests")
@@ -72,8 +72,8 @@ model Client {
   name      String    @db.VarChar(255)
   user      User      @relation(fields: [userId], references: [id])
   projects  Project[]
-  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt DateTime  @default(now()) @map("updated_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @default(now()) @map("updated_at")
 
   @@unique([userId, name])
   @@map("clients")
@@ -84,8 +84,8 @@ model Project {
   clientId  Int      @map("client_id")
   name      String   @db.VarChar(255)
   client    Client   @relation(fields: [clientId], references: [id])
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @map("updated_at")
 
   @@unique([clientId, name])
   @@map("projects")

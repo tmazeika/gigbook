@@ -1,9 +1,21 @@
 import 'gigbook/pages/_app.css';
-import { Provider } from 'next-auth/client';
-import type { AppProps } from 'next/app';
+import type { Session } from 'next-auth';
+import { Provider as AuthProvider } from 'next-auth/client';
+import type { AppProps as NextAppProps } from 'next/app';
 import { SWRConfig } from 'swr';
 
-export default function App({ Component, pageProps }: AppProps): JSX.Element {
+type AppProps<T> = Omit<NextAppProps<T>, 'pageProps'> & {
+  pageProps: T;
+};
+
+type SessionAppProps = AppProps<{
+  session?: Session;
+}>;
+
+export default function App({
+  Component,
+  pageProps,
+}: SessionAppProps): JSX.Element {
   return (
     <SWRConfig
       value={{
@@ -12,10 +24,9 @@ export default function App({ Component, pageProps }: AppProps): JSX.Element {
         },
       }}
     >
-      {/* eslint-disable-next-line @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-member-access */}
-      <Provider session={pageProps.session}>
+      <AuthProvider session={pageProps.session}>
         <Component {...pageProps} />
-      </Provider>
+      </AuthProvider>
     </SWRConfig>
   );
 }
