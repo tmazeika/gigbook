@@ -20,7 +20,9 @@ export default function useEntities<E>(url: string): EntitiesHook<E> {
       await mutate([...(data ?? []), tmpEntity], false);
       const res = await fetch(url, {
         method: 'POST',
-        body: new URLSearchParams(Object.entries(entity)),
+        body: new URLSearchParams(
+          Object.entries(entity).map(([k, v]) => [k, String(v)]),
+        ),
       });
       if (!res.ok) {
         await revalidate();
