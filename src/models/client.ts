@@ -3,7 +3,7 @@ export interface UnsavedClient {
 }
 
 export interface Client extends UnsavedClient {
-  id: string;
+  id: number;
 }
 
 export function isValidUnsavedClient(v: unknown): v is UnsavedClient {
