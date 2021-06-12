@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 import React from 'react';
 import styles from './layout.module.css';
 import cn from 'classnames';
+import Link from 'next/link';
 
 export default function Layout(
   props: React.PropsWithChildren<unknown>,
@@ -34,20 +35,31 @@ export default function Layout(
       <nav>
         <ul>
           <li>
-            <a
-              href="/clients"
-              className={cn({ [styles.active]: router.route === '/clients' })}
-            >
-              Clients
-            </a>
+            <Link href="/">
+              <a className={cn({ [styles.active]: router.route === '/' })}>
+                Home
+              </a>
+            </Link>
           </li>
           <li>
-            <a
-              href="/projects"
-              className={cn({ [styles.active]: router.route === '/projects' })}
-            >
-              Projects
-            </a>
+            <Link href="/clients">
+              <a
+                className={cn({ [styles.active]: router.route === '/clients' })}
+              >
+                Clients
+              </a>
+            </Link>
+          </li>
+          <li>
+            <Link href="/projects">
+              <a
+                className={cn({
+                  [styles.active]: router.route === '/projects',
+                })}
+              >
+                Projects
+              </a>
+            </Link>
           </li>
         </ul>
       </nav>

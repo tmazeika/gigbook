@@ -26,7 +26,9 @@ export default function Projects(): JSX.Element {
       }
     },
     async onSubmit({ name }) {
-      await projects.save({ name, clientId: 66 });
+      if (clientId) {
+        await projects.save({ name, clientId });
+      }
     },
   });
   return (
@@ -35,7 +37,12 @@ export default function Projects(): JSX.Element {
       <ul>
         {clients.data.map((c) => (
           <li key={c.id}>
-            <button onClick={() => setClientId(c.id)}>{c.name}</button>
+            <button
+              onClick={() => setClientId(c.id)}
+              disabled={c.id === clientId}
+            >
+              {c.name}
+            </button>
           </li>
         ))}
       </ul>

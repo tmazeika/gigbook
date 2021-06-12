@@ -8,11 +8,15 @@ import type { NextApiHandler } from 'next';
 
 function handler(user: User): NextApiHandler {
   const get: NextApiHandler = async (req, res) => {
+    const { projects } = req.query;
     const clients = await db.client.findMany({
       where: {
         user: {
           email: user.email,
         },
+      },
+      include: {
+        projects: projects === 'true',
       },
     });
     res.status(200).json(clients);

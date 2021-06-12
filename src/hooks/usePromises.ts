@@ -21,6 +21,7 @@ export function isCanceledError(e: unknown): e is CanceledError {
 
 class CancelablePromise<T> extends Promise<T> {
   public cancelFn: (() => void) | undefined;
+  public isCanceled = false;
 
   constructor(
     executor: (
@@ -32,6 +33,7 @@ class CancelablePromise<T> extends Promise<T> {
   }
 
   public cancel() {
+    this.isCanceled = true;
     this.cancelFn?.();
   }
 }
@@ -49,7 +51,14 @@ export default function usePromises(): PromisesManager {
     run<T>(createPromise: () => Promise<T>, suppressCancel = true) {
       const cancelable = makeCancelable(createPromise(), suppressCancel);
       promises.current.push(cancelable);
-      return cancelable;
+      return cancelable.finally(() => {
+        if (!cancelable.isCanceled) {
+          promises.current.splice(
+            promises.current.findIndex((p) => Object.is(p, cancelable)),
+            1,
+          );
+        }
+      });
     },
   };
 }
