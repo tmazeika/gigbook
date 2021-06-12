@@ -1,16 +1,25 @@
 import Layout from 'gigbook/components/layout';
 import useClients from 'gigbook/hooks/useClients';
 import useForm from 'gigbook/hooks/useForm';
-import usePromises from 'gigbook/hooks/usePromises';
-import { useState } from 'react';
 
 export default function Clients(): JSX.Element {
-  const [submitting, setSubmitting] = useState(false);
-  const promises = usePromises();
-  const form = useForm({
-    name: '',
-  });
   const clients = useClients();
+  const form = useForm({
+    initialValues: {
+      name: '',
+    },
+    onValidate({ name }, errors) {
+      if (!name) {
+        errors.name = 'Required';
+      }
+      if (clients.data.map((c) => c.name).includes(name)) {
+        errors.name = 'Already exists';
+      }
+    },
+    async onSubmit({ name }) {
+      await clients.save({ name });
+    },
+  });
   return (
     <Layout>
       <h1>Clients</h1>
@@ -20,36 +29,11 @@ export default function Clients(): JSX.Element {
         ))}
       </ul>
       <hr />
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          setSubmitting(true);
-          const { name } = form.values;
-          let errors = false;
-          if (!name) {
-            form.setError('name', 'Required');
-            errors = true;
-          }
-          if (clients.data.map((c) => c.name).includes(name)) {
-            form.setError('name', 'Already exists');
-            errors = true;
-          }
-          if (!errors) {
-            form.reset();
-            void promises.run(async () => {
-              await clients.save({ name });
-              setSubmitting(false);
-            });
-          } else {
-            setSubmitting(false);
-          }
-        }}
-      >
+      <form onSubmit={(e) => form.onSubmit(e)}>
         <div>
           <label htmlFor="name">Name</label>
           <input
             id="name"
-            name="name"
             type="text"
             maxLength={255}
             autoComplete="off"
@@ -58,10 +42,11 @@ export default function Clients(): JSX.Element {
           />
           {form.errors.name && <div>{form.errors.name}</div>}
         </div>
-        <button type="submit" disabled={submitting}>
+        <button type="submit" disabled={form.isSubmitting}>
           Create
         </button>
       </form>
+      <button onClick={() => clients.deleteAll()}>Delete All</button>
     </Layout>
   );
 }

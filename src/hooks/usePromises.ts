@@ -19,9 +19,22 @@ export function isCanceledError(e: unknown): e is CanceledError {
   return e instanceof CanceledError;
 }
 
-type CancelablePromise<T> = Promise<T> & {
-  cancel(): void;
-};
+class CancelablePromise<T> extends Promise<T> {
+  public cancelFn: (() => void) | undefined;
+
+  constructor(
+    executor: (
+      resolve: (value: PromiseLike<T> | T) => void,
+      reject: (reason?: unknown) => void,
+    ) => void,
+  ) {
+    super(executor);
+  }
+
+  public cancel() {
+    this.cancelFn?.();
+  }
+}
 
 export default function usePromises(): PromisesManager {
   const promises = useRef<CancelablePromise<unknown>[]>([]);
@@ -46,7 +59,7 @@ function makeCancelable<T>(
   suppressCancel: boolean,
 ): CancelablePromise<T> {
   let canceled = false;
-  const cancelable = new Promise<T>((resolve, reject) => {
+  const cancelable = new CancelablePromise<T>((resolve, reject) => {
     promise
       .then((v) => {
         if (canceled && !suppressCancel) {
@@ -63,10 +76,6 @@ function makeCancelable<T>(
         }
       });
   });
-  return {
-    ...cancelable,
-    cancel() {
-      canceled = true;
-    },
-  };
+  cancelable.cancelFn = () => (canceled = true);
+  return cancelable;
 }

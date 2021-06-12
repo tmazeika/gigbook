@@ -18,9 +18,22 @@ export default (() =>
 export async function createEntity(
   fn: () => Promise<unknown>,
 ): Promise<number> {
+  return execute(fn, 201);
+}
+
+export async function deleteEntity(
+  fn: () => Promise<unknown>,
+): Promise<number> {
+  return execute(fn, 204);
+}
+
+async function execute(
+  fn: () => Promise<unknown>,
+  ok: number,
+): Promise<number> {
   try {
     await fn();
-    return 201;
+    return ok;
   } catch (e) {
     return isClientError(e) ? 400 : 500;
   }

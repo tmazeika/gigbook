@@ -1,4 +1,4 @@
-import db, { createEntity } from 'gigbook/db';
+import db, { createEntity, deleteEntity } from 'gigbook/db';
 import withMethods from 'gigbook/middleware/withMethods';
 import withUnsavedEntity from 'gigbook/middleware/withUnsavedEntity';
 import withUser from 'gigbook/middleware/withUser';
@@ -37,7 +37,29 @@ function handler(user: User): NextApiHandler {
     },
   );
 
-  return (req, res) => (req.method === 'GET' ? get(req, res) : post(req, res));
+  const _delete: NextApiHandler = async (req, res) => {
+    const status = await deleteEntity(() =>
+      db.client.deleteMany({
+        where: {
+          user: {
+            email: user.email,
+          },
+        },
+      }),
+    );
+    res.status(status).end();
+  };
+
+  return (req, res) => {
+    switch (req.method) {
+      case 'GET':
+        return get(req, res);
+      case 'POST':
+        return post(req, res);
+      case 'DELETE':
+        return _delete(req, res);
+    }
+  };
 }
 
-export default withMethods(['GET', 'POST'], withUser(handler));
+export default withMethods(['GET', 'POST', 'DELETE'], withUser(handler));

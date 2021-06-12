@@ -18,7 +18,8 @@ p {
 }
 
 body {
-  color: #333;
+  background-color: #333;
+  color: #fff;
   font: normal 1em/1.5 sans-serif;
 }
 
