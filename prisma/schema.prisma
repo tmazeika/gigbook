@@ -19,7 +19,8 @@ model Account {
   accessTokenExpires DateTime? @map("access_token_expires")
   createdAt          DateTime  @default(now()) @map("created_at")
   updatedAt          DateTime  @default(now()) @map("updated_at")
-  user               User      @relation(fields: [userId], references: [id])
+
+  user User @relation(fields: [userId], references: [id])
 
   @@unique([providerId, providerAccountId])
   @@index([userId])
@@ -34,22 +35,27 @@ model Session {
   accessToken  String   @unique @map("access_token") @db.VarChar(255)
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @default(now()) @map("updated_at")
-  user         User     @relation(fields: [userId], references: [id])
+
+  user User @relation(fields: [userId], references: [id])
 
   @@map("sessions")
 }
 
 model User {
-  id            Int       @id @default(autoincrement())
-  name          String?   @db.VarChar(255)
-  email         String?   @unique @db.VarChar(255)
-  emailVerified DateTime? @map("email_verified")
-  image         String?
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @default(now()) @map("updated_at")
-  clients       Client[]
-  accounts      Account[]
-  sessions      Session[]
+  id             Int       @id @default(autoincrement())
+  name           String?   @db.VarChar(255)
+  address        Json?     @db.Json
+  clockifyApiKey String?   @db.VarChar(255)
+  email          String?   @unique @db.VarChar(255)
+  emailVerified  DateTime? @map("email_verified")
+  image          String?
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @default(now()) @map("updated_at")
+
+  accounts Account[]
+  sessions Session[]
+  clients  Client[]
+  banks    Bank[]
 
   @@map("users")
 }
@@ -67,38 +73,36 @@ model VerificationRequest {
 }
 
 model Client {
-  id        Int       @id @default(autoincrement())
-  userId    Int       @map("user_id")
-  name      String    @db.VarChar(255)
-  user      User      @relation(fields: [userId], references: [id])
-  projects  Project[]
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @default(now()) @map("updated_at")
+  id               Int      @id @default(autoincrement())
+  userId           Int      @map("user_id")
+  clockifyId       String   @map("clockify_id") @db.VarChar(255)
+  address          Json?    @db.Json
+  billingIncrement Int      @map("billing_increments")
+  billingNetDays   Int      @map("billing_net_days")
+  billingCurrency  String   @map("billing_currency") @db.VarChar(3)
+  bankId           Int?     @map("bank_id")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @default(now()) @map("updated_at")
 
-  @@unique([userId, name])
+  user User  @relation(fields: [userId], references: [id])
+  bank Bank? @relation(fields: [bankId], references: [id])
+
+  @@unique([userId, clockifyId])
   @@map("clients")
 }
 
-model Project {
+model Bank {
   id        Int      @id @default(autoincrement())
-  clientId  Int      @map("client_id")
-  name      String   @db.VarChar(255)
-  client    Client   @relation(fields: [clientId], references: [id])
+  userId    Int      @map("user_id")
+  nickname  String?  @db.VarChar(255)
+  currency  String   @db.VarChar(3)
+  details   Json     @db.Json
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @default(now()) @map("updated_at")
 
-  @@unique([clientId, name])
-  @@map("projects")
-}
+  user    User     @relation(fields: [userId], references: [id])
+  clients Client[]
 
-model Task {
-  id        Int      @id @default(autoincrement())
-  projectId  Int      @map("project_id")
-  name      String   @db.VarChar(255)
-  project    Project   @relation(fields: [projectId], references: [id])
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @default(now()) @map("updated_at")
-
-  @@unique([projectId, name])
-  @@map("tasks")
+  @@unique([userId, nickname])
+  @@map("banks")
 }

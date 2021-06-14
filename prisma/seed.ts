@@ -4,46 +4,56 @@ const prisma = new PrismaClient();
 
 const users: Prisma.UserCreateInput[] = [
   {
-    email: 'mazeika.tj@gmail.com',
+    email: 'someone@example.com',
     emailVerified: new Date(),
-    clients: {
+    banks: {
       create: [
         {
-          name: 'Sample & Co',
+          currency: 'gbp',
+          details: {
+            'Account Holder': 'John Doe',
+            'Account #': '123456789',
+            'Sort Code': '12-34-56',
+            IBAN: 'AAAA BBBB 1234 5678 9123 45',
+            Address: [
+              '**Bank of UK**',
+              '99 Royal Street',
+              'London',
+              'E1 6JJ',
+              'United Kingdom',
+            ],
+          },
+        },
+        {
+          nickname: 'USA Bank',
+          currency: 'usd',
+          details: {
+            'Account Holder': 'John Doe',
+            'Routing #': '987654321',
+            'Account #': '123456789',
+            Address: [
+              '**USA Bank**',
+              '321 Zeroth Avenue',
+              'New York, NY 10001',
+              'United States',
+            ],
+          },
         },
       ],
     },
-  },
-  {
-    email: 'tj@mazeika.dev',
-    emailVerified: new Date(),
     clients: {
       create: [
         {
-          name: 'Mazeika LLC',
-          projects: {
-            create: [
-              {
-                name: 'GigBook',
-              },
-              {
-                name: 'Freelancer',
-              },
-            ],
-          },
-        },
-        {
-          name: 'Acme, Inc.',
-          projects: {
-            create: [
-              {
-                name: 'YourTrains',
-              },
-              {
-                name: 'MyTickets',
-              },
-            ],
-          },
+          clockifyId: '601198d882050431e749102d',
+          address: [
+            '*Mazeika LLC*',
+            '123 Main Street',
+            'Boston, MA 02115',
+            '_Company # 123456789_',
+          ],
+          billingIncrement: 15,
+          billingNetDays: 30,
+          billingCurrency: 'usd',
         },
       ],
     },

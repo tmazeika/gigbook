@@ -19,9 +19,8 @@ export default function App({
   return (
     <SWRConfig
       value={{
-        fetcher(resource, init) {
-          return fetch(resource, init).then((res) => res.json());
-        },
+        fetcher: (resource, init) =>
+          fetch(resource, init).then((res) => res.json()),
       }}
     >
       <AuthProvider session={pageProps.session}>

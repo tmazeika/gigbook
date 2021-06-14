@@ -5,6 +5,7 @@ export interface EntitiesHook<E> {
   isLoading: boolean;
 
   save(entity: Omit<E, 'id'>): Promise<void>;
+
   deleteAll(): Promise<void>;
 }
 

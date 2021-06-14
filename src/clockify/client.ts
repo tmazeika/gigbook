@@ -1,12 +1,15 @@
 import { buildUrl } from 'gigbook/util/url';
+import { DateTime, Duration } from 'luxon';
 
 export class ClockifyError extends Error {
   public readonly status: number;
+  public readonly statusText: string;
 
-  constructor(resource: string, status: number, statusText: string) {
-    super(`Request to ${resource} failed: ${status} ${statusText}`);
+  constructor(url: string, status: number, statusText: string) {
+    super(`Request to ${url} failed: ${status} ${statusText}`);
     Object.setPrototypeOf(this, ClockifyError.prototype);
     this.status = status;
+    this.statusText = statusText;
   }
 }
 
@@ -14,14 +17,59 @@ export function isClockifyError(e: unknown): e is ClockifyError {
   return e instanceof ClockifyError;
 }
 
+export interface ClockifyUser {
+  id: string;
+  name: string;
+  settings: {
+    timeZone: string;
+  };
+}
+
+export interface ClockifyReport {
+  timeentries: {
+    clientId: string;
+    clientName: string;
+    projectId: string;
+    projectName: string;
+    description: string;
+    timeInterval: {
+      start: string;
+      end: string;
+    };
+    rate: number;
+  }[];
+}
+
 export interface User {
   id: string;
   name: string;
+  timeZone: string;
 }
 
 export interface Workspace {
   id: string;
   name: string;
+}
+
+export interface Invoice {
+  period: {
+    start: DateTime;
+    end: DateTime;
+  };
+  clients: {
+    [id: string]: {
+      name: string;
+      lineItems: {
+        project: {
+          id: string;
+          name: string;
+        };
+        task: string;
+        quantity: Duration;
+        rate: number;
+      }[];
+    };
+  };
 }
 
 export default class Clockify {
@@ -32,10 +80,11 @@ export default class Clockify {
   }
 
   async getUser(): Promise<User> {
-    const { id, name } = (await this.get('user')) as User;
+    const user = (await this.get('user')) as ClockifyUser;
     return {
-      id: id,
-      name: name,
+      id: user.id,
+      name: user.name,
+      timeZone: user.settings.timeZone,
     };
   }
 
@@ -47,22 +96,106 @@ export default class Clockify {
     }));
   }
 
+  async getInvoice(workspaceId: string, date: DateTime): Promise<Invoice> {
+    const start = date.startOf('month');
+    const end = start.endOf('month');
+    const report = (await this.getReport(
+      `workspaces/${workspaceId}/reports/detailed`,
+      {
+        exportType: 'JSON',
+        dateRangeStart: start.toISO({ includeOffset: false }),
+        dateRangeEnd: end.toISO({ includeOffset: false }),
+        timeZone: date.zone.name,
+        amountShown: 'EARNED',
+        billable: true,
+        detailedFilter: {
+          page: 1,
+          pageSize: 200,
+          options: {
+            totals: 'EXCLUDE',
+          },
+        },
+      },
+    )) as ClockifyReport;
+    const invoice: Invoice = {
+      period: {
+        start,
+        end,
+      },
+      clients: {},
+    };
+    for (const timeEntry of report.timeentries) {
+      const duration = DateTime.fromISO(timeEntry.timeInterval.end).diff(
+        DateTime.fromISO(timeEntry.timeInterval.start),
+      );
+      const client = (invoice.clients[timeEntry.clientId] ??= {
+        name: timeEntry.clientName,
+        lineItems: [],
+      });
+      const lineItem = client.lineItems.find(
+        (i) =>
+          i.project.id === timeEntry.projectId &&
+          i.task === timeEntry.description &&
+          i.rate === timeEntry.rate,
+      );
+      if (lineItem) {
+        lineItem.quantity = lineItem.quantity.plus(duration);
+      } else {
+        client.lineItems.push({
+          project: {
+            id: timeEntry.projectId,
+            name: timeEntry.projectName,
+          },
+          task: timeEntry.description,
+          quantity: duration,
+          rate: timeEntry.rate,
+        });
+      }
+    }
+    return invoice;
+  }
+
+  private async getReport(
+    resource: string,
+    body: Record<string, unknown>,
+  ): Promise<unknown> {
+    return this.request(
+      'POST',
+      buildUrl('https://reports.api.clockify.me', `/v1/${resource}`),
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      },
+    );
+  }
+
   private async get(
     resource: string,
     query?: Record<string, unknown>,
   ): Promise<unknown> {
-    const url = buildUrl(
-      'https://api.clockify.me',
-      `/api/v1/${resource}`,
-      query,
+    return this.request(
+      'GET',
+      buildUrl('https://api.clockify.me', `/api/v1/${resource}`, query),
     );
+  }
+
+  private async request(
+    method: string,
+    url: string,
+    init?: RequestInit,
+  ): Promise<unknown> {
     const res = await fetch(url, {
+      ...init,
+      method,
       headers: {
+        ...init?.headers,
         'X-Api-Key': this.apiKey,
       },
     });
     if (!res.ok) {
-      throw new ClockifyError(resource, res.status, res.statusText);
+      throw new ClockifyError(url, res.status, res.statusText);
     }
     return res.json();
   }

@@ -1,10 +1,10 @@
+import cn from 'classnames';
 import { signIn, signOut, useSession } from 'next-auth/client';
 import Head from 'next/head';
+import Link from 'next/link';
 import { useRouter } from 'next/router';
 import React from 'react';
 import styles from './layout.module.css';
-import cn from 'classnames';
-import Link from 'next/link';
 
 export default function Layout(
   props: React.PropsWithChildren<unknown>,
@@ -37,7 +37,7 @@ export default function Layout(
           <li>
             <Link href="/">
               <a className={cn({ [styles.active]: router.route === '/' })}>
-                Home
+                Invoice
               </a>
             </Link>
           </li>
@@ -47,17 +47,6 @@ export default function Layout(
                 className={cn({ [styles.active]: router.route === '/clients' })}
               >
                 Clients
-              </a>
-            </Link>
-          </li>
-          <li>
-            <Link href="/projects">
-              <a
-                className={cn({
-                  [styles.active]: router.route === '/projects',
-                })}
-              >
-                Projects
               </a>
             </Link>
           </li>

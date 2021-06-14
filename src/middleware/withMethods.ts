@@ -8,6 +8,7 @@ export default function withMethods(
     if (req.method && methods.includes(req.method)) {
       return next(req, res);
     }
-    res.setHeader('Allow', methods.join(', ')).status(405).end();
+    res.setHeader('Allow', methods.join(', '));
+    res.status(405).end();
   };
 }

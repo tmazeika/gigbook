@@ -1,56 +1,54 @@
+import Clockify, {
+  ClockifyError,
+  isClockifyError,
+} from 'gigbook/clockify/client';
 import Layout from 'gigbook/components/layout';
 import useLocalStorage from 'gigbook/hooks/useLocalStorage';
+import { DateTime } from 'luxon';
 import { useState } from 'react';
+import useSWR from 'swr';
 
 export default function Index(): JSX.Element {
-  const [apiKey, setApiKey] = useLocalStorage('clockify-api-key', useState(''));
+  const { data: apiKey } = useSWR<{ apiKey: string }>('/api/clockify/api-key');
+
+  const [month, setMonth] = useLocalStorage('clockify-month', useState(''));
   const [log, setLog] = useState('');
 
   return (
     <Layout>
       <div>
-        <label htmlFor="api-key">Clockify API Key</label>
+        <label htmlFor="month">Invoice Period</label>
         <input
-          id="api-key"
-          name="api-key"
-          type="text"
-          value={apiKey}
-          onChange={(e) => setApiKey(e.target.value)}
+          id="month"
+          name="month"
+          type="date"
+          value={month}
+          onChange={(e) => setMonth(e.target.value)}
         />
       </div>
       <button
-        onClick={async () => {
-          const res = await fetch('/api/clockify/user', {
-            headers: {
-              'X-Api-Key': apiKey,
-            },
-          });
-          if (res.ok) {
-            const json: unknown = await res.json();
-            setLog((log) => `${JSON.stringify(json, null, 2)}\n${log}`);
-          } else {
-            setLog((log) => `Error: ${res.status} ${res.statusText}\n${log}`);
-          }
-        }}
+        onClick={
+          !apiKey
+            ? undefined
+            : async () => {
+                const clockify = new Clockify(apiKey.apiKey);
+                try {
+                  const invoice = await clockify.getInvoice(
+                    '6011984482050431e7490c55',
+                    DateTime.fromISO(month).setZone('local'),
+                  );
+                  setLog(`${JSON.stringify(invoice, null, 2)}`);
+                } catch (e) {
+                  if (isClockifyError(e)) {
+                    const { status, statusText }: ClockifyError = e;
+                    setLog(`${status} ${statusText}`);
+                  }
+                }
+              }
+        }
+        disabled={!apiKey}
       >
-        User
-      </button>
-      <button
-        onClick={async () => {
-          const res = await fetch('/api/clockify/workspaces', {
-            headers: {
-              'X-Api-Key': apiKey,
-            },
-          });
-          if (res.ok) {
-            const json: unknown = await res.json();
-            setLog((log) => `${JSON.stringify(json, null, 2)}\n${log}`);
-          } else {
-            setLog((log) => `${res.status} ${res.statusText}\n${log}`);
-          }
-        }}
-      >
-        Workspaces
+        Invoice
       </button>
       <pre>{log}</pre>
     </Layout>
