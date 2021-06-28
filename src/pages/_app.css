@@ -18,13 +18,13 @@ p {
 }
 
 body {
-  background-color: #333;
-  color: #fff;
+  /*background-color: #333;*/
+  /*color: #fff;*/
   font: normal 1em/1.5 sans-serif;
 }
 
 a {
-  color: lightblue;
+  /*color: lightblue;*/
 }
 
 .flex-spacer {

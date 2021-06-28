@@ -17,7 +17,7 @@ export function isClockifyError(e: unknown): e is ClockifyError {
   return e instanceof ClockifyError;
 }
 
-export interface ClockifyUser {
+export interface ClockifyAPIUser {
   id: string;
   name: string;
   settings: {
@@ -25,7 +25,7 @@ export interface ClockifyUser {
   };
 }
 
-export interface ClockifyReport {
+export interface ClockifyAPIReport {
   timeentries: {
     clientId: string;
     clientName: string;
@@ -40,18 +40,18 @@ export interface ClockifyReport {
   }[];
 }
 
-export interface User {
+export interface ClockifyUser {
   id: string;
   name: string;
   timeZone: string;
 }
 
-export interface Workspace {
+export interface ClockifyWorkspace {
   id: string;
   name: string;
 }
 
-export interface Invoice {
+export interface ClockifyInvoice {
   period: {
     start: DateTime;
     end: DateTime;
@@ -79,8 +79,8 @@ export default class Clockify {
     this.apiKey = apiKey;
   }
 
-  async getUser(): Promise<User> {
-    const user = (await this.get('user')) as ClockifyUser;
+  async getUser(): Promise<ClockifyUser> {
+    const user = (await this.get('user')) as ClockifyAPIUser;
     return {
       id: user.id,
       name: user.name,
@@ -88,15 +88,18 @@ export default class Clockify {
     };
   }
 
-  async getWorkspaces(): Promise<Workspace[]> {
-    const workspaces = (await this.get('workspaces')) as Workspace[];
+  async getWorkspaces(): Promise<ClockifyWorkspace[]> {
+    const workspaces = (await this.get('workspaces')) as ClockifyWorkspace[];
     return workspaces.map((w) => ({
       id: w.id,
       name: w.name,
     }));
   }
 
-  async getInvoice(workspaceId: string, date: DateTime): Promise<Invoice> {
+  async getInvoice(
+    workspaceId: string,
+    date: DateTime,
+  ): Promise<ClockifyInvoice> {
     const start = date.startOf('month');
     const end = start.endOf('month');
     const report = (await this.getReport(
@@ -116,8 +119,8 @@ export default class Clockify {
           },
         },
       },
-    )) as ClockifyReport;
-    const invoice: Invoice = {
+    )) as ClockifyAPIReport;
+    const invoice: ClockifyInvoice = {
       period: {
         start,
         end,

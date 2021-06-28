@@ -1,14 +1,31 @@
 import usePromises from 'gigbook/hooks/usePromises';
-import { ChangeEvent, FormEvent, useState } from 'react';
+import { FormEvent, useReducer, useState } from 'react';
 
 type FormErrors<FormValues> = Partial<Record<keyof FormValues, string>>;
 
-export interface Form<FormValues> {
-  values: Readonly<FormValues>;
-  errors: Readonly<FormErrors<FormValues>>;
-  isSubmitting: boolean;
+type DispatchAction<FormValues> = (state: FormValues) => FormValues;
 
-  onChange(name: keyof FormValues): (e: ChangeEvent<HTMLInputElement>) => void;
+function createAction<FormValues, K extends keyof FormValues>(
+  key: K,
+  value: FormValues[K],
+): DispatchAction<FormValues> {
+  return (state) => {
+    if (Object.is(state[key], value)) {
+      return state;
+    }
+    return {
+      ...state,
+      [key]: value,
+    };
+  };
+}
+
+export interface Form<FormValues> {
+  readonly values: Readonly<FormValues>;
+  readonly errors: Readonly<FormErrors<FormValues>>;
+  readonly isSubmitting: boolean;
+
+  set<K extends keyof FormValues>(key: K, value: FormValues[K]): void;
 
   onSubmit(e: FormEvent<HTMLFormElement>): void;
 
@@ -22,25 +39,21 @@ export default function useForm<FormValues>(options: {
     errors: FormErrors<FormValues>,
   ) => void;
   onSubmit?: (values: Readonly<FormValues>) => Promise<void>;
-}): Readonly<Form<FormValues>> {
+}): Form<FormValues> {
   const promises = usePromises();
   const [isSubmitting, setSubmitting] = useState(false);
-  const [values, setValues] = useState(options.initialValues);
+  const [values, dispatch] = useReducer(
+    (state: FormValues, action: DispatchAction<FormValues>) => action(state),
+    options.initialValues,
+  );
   const [errors, setErrors] = useState<FormErrors<FormValues>>({});
 
   return {
     values,
     errors,
     isSubmitting,
-    onChange(
-      name: keyof FormValues,
-    ): (e: ChangeEvent<HTMLInputElement>) => void {
-      return (e) => {
-        setValues((values) => ({
-          ...values,
-          [name]: e.target.value,
-        }));
-      };
+    set<K extends keyof FormValues>(key: K, value: FormValues[K]) {
+      dispatch(createAction(key, value));
     },
     onSubmit(e: FormEvent<HTMLFormElement>) {
       e.preventDefault();
@@ -59,7 +72,7 @@ export default function useForm<FormValues>(options: {
         });
     },
     reset() {
-      setValues(options.initialValues);
+      dispatch(() => options.initialValues);
       setErrors({});
     },
   };

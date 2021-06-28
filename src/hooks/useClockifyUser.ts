@@ -1,4 +1,6 @@
-import Clockify, { User as ClockifyUser } from 'gigbook/clockify/client';
+import Clockify, {
+  ClockifyUser as ClockifyUser,
+} from 'gigbook/clockify/client';
 import usePromises from 'gigbook/hooks/usePromises';
 import { useEffect, useState } from 'react';
 
