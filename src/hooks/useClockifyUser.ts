@@ -13,9 +13,7 @@ export default function useClockifyUser(
   const validApiKey = apiKey.length === 48 ? apiKey : null;
   useEffect(() => {
     if (validApiKey) {
-      void promises
-        .run(() => new Clockify(validApiKey).getUser())
-        .then(setUser);
+      void promises.run(new Clockify(validApiKey).getUser()).then(setUser);
     } else {
       setUser(undefined);
     }
