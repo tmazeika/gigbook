@@ -1,9 +1,9 @@
 import { basicSetup, EditorState, EditorView } from '@codemirror/basic-setup';
-import { html } from '@codemirror/lang-html';
-import { css } from '@codemirror/lang-css';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { keymap } from '@codemirror/view';
 import { defaultTabBinding } from '@codemirror/commands';
+import { css } from '@codemirror/lang-css';
+import { html } from '@codemirror/lang-html';
+import { keymap } from '@codemirror/view';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 export type Language = 'css' | 'html';
 
@@ -15,17 +15,18 @@ export interface CodeEditorHook {
 export default function useCodeEditor(language: Language): CodeEditorHook {
   const [doc, setDoc] = useState('');
   const element = useMemo(
-    () => <Editor language={language} onChange={(v) => setDoc(v)} />,
+    () => <Editor language={language} onChange={setDoc} />,
     [language],
   );
   return {
-    value: doc.toString(),
+    value: doc,
     element,
   };
 }
 
 interface EditorProps {
   language: Language;
+
   onChange(value: string): void;
 }
 

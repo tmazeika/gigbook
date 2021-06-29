@@ -2,6 +2,7 @@ import { TextInput, NumberInput, DateInput } from 'gigbook/components/form';
 import Layout from 'gigbook/components/layout';
 import useCodeMirror from 'gigbook/hooks/useCodeMirror';
 import useForm from 'gigbook/hooks/useForm';
+import { NumberInputValue } from 'gigbook/util/type';
 import { DateTime } from 'luxon';
 
 export interface LineItem {
@@ -18,10 +19,11 @@ export interface BankDetail {
 
 export default function Index(): JSX.Element {
   // const { data: apiKey } = useSWR<{ apiKey: string }>('/api/clockify/api-key');
+
   const form = useForm({
     initialValues: {
       id: '',
-      date: DateTime.now().toISODate(),
+      date: DateTime.now(),
       myName: '',
       myDescription: '',
       myAddress: '',
@@ -29,8 +31,8 @@ export default function Index(): JSX.Element {
       clientAddress: '',
       clientCurrency: '',
       lineItems: [] as LineItem[],
-      billingIncrement: 6,
-      billingNet: 30,
+      billingIncrement: NumberInputValue.fromNumber(6),
+      billingNet: NumberInputValue.fromNumber(30),
       billingCurrency: '',
       bank: [] as BankDetail[],
       template: '',
@@ -44,35 +46,38 @@ export default function Index(): JSX.Element {
   return (
     <Layout>
       <form>
-        <TextInput form={form} formKey={'id'} label="ID" />
-        <DateInput form={form} formKey={'date'} label="Period" />
-        <TextInput form={form} formKey={'myName'} label="Company Name" />
+        <DateInput controller={form.control('date')} label="Period" />
+        <TextInput controller={form.control('myName')} label="Company Name" />
         <TextInput
-          form={form}
-          formKey={'myDescription'}
+          controller={form.control('myDescription')}
           label="Company Description"
         />
-        <TextInput form={form} formKey={'myAddress'} label="Company Address" />
-        <TextInput form={form} formKey={'clientName'} label="Client Name" />
         <TextInput
-          form={form}
-          formKey={'clientAddress'}
+          controller={form.control('myAddress')}
+          label="Company Address"
+        />
+        <TextInput
+          controller={form.control('clientName')}
+          label="Client Name"
+        />
+        <TextInput
+          controller={form.control('clientAddress')}
           label="Client Address"
         />
         <TextInput
-          form={form}
-          formKey={'clientCurrency'}
+          controller={form.control('clientCurrency')}
           label="Client Currency"
         />
         <NumberInput
-          form={form}
-          formKey={'billingIncrement'}
+          controller={form.control('billingIncrement')}
           label="Billing Increment"
         />
-        <NumberInput form={form} formKey={'billingNet'} label="Billing Net" />
+        <NumberInput
+          controller={form.control('billingNet')}
+          label="Billing Net"
+        />
         <TextInput
-          form={form}
-          formKey={'billingCurrency'}
+          controller={form.control('billingCurrency')}
           label="Billing Currency"
         />
         {cssEditor.element}

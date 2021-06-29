@@ -2,10 +2,10 @@ import { useEffect, useRef } from 'react';
 
 export interface PromisesManager {
   /**
-   * @param createPromise
+   * @param promise
    * @param [suppressCancel=true]
    */
-  run<T>(createPromise: () => Promise<T>, suppressCancel?: boolean): Promise<T>;
+  run<T>(promise: Promise<T>, suppressCancel?: boolean): Promise<T>;
 }
 
 export class CanceledError extends Error {
@@ -20,8 +20,8 @@ export function isCanceledError(e: unknown): e is CanceledError {
 }
 
 class CancelablePromise<T> extends Promise<T> {
-  public cancelFn: (() => void) | undefined;
-  public isCanceled = false;
+  isCanceled = false;
+  cancelFn?: () => void;
 
   constructor(
     executor: (
@@ -32,31 +32,29 @@ class CancelablePromise<T> extends Promise<T> {
     super(executor);
   }
 
-  public cancel() {
+  cancel() {
     this.isCanceled = true;
     this.cancelFn?.();
   }
 }
 
 export default function usePromises(): PromisesManager {
-  const promises = useRef<CancelablePromise<unknown>[]>([]);
+  const trackedRef = useRef<CancelablePromise<unknown>[]>([]);
   useEffect(
     () => () => {
-      promises.current?.forEach((p) => p.cancel());
-      promises.current = [];
+      trackedRef.current?.forEach((p) => p.cancel());
+      trackedRef.current = [];
     },
     [],
   );
   return {
-    run<T>(createPromise: () => Promise<T>, suppressCancel = true) {
-      const cancelable = makeCancelable(createPromise(), suppressCancel);
-      promises.current.push(cancelable);
+    run<T>(promise: Promise<T>, suppressCancel = true) {
+      const cancelable = makeCancelable(promise, suppressCancel);
+      const tracked = trackedRef.current;
+      tracked.push(cancelable);
       return cancelable.finally(() => {
         if (!cancelable.isCanceled) {
-          promises.current.splice(
-            promises.current.findIndex((p) => Object.is(p, cancelable)),
-            1,
-          );
+          tracked.splice(tracked.indexOf(cancelable), 1);
         }
       });
     },
@@ -69,21 +67,16 @@ function makeCancelable<T>(
 ): CancelablePromise<T> {
   let canceled = false;
   const cancelable = new CancelablePromise<T>((resolve, reject) => {
-    promise
-      .then((v) => {
+    function handle<R>(fn: (v: R) => void) {
+      return (v: R) => {
         if (canceled && !suppressCancel) {
           reject(new CanceledError());
         } else if (!canceled) {
-          resolve(v);
+          fn(v);
         }
-      })
-      .catch((e) => {
-        if (canceled && !suppressCancel) {
-          reject(new CanceledError());
-        } else if (!canceled) {
-          reject(e);
-        }
-      });
+      };
+    }
+    promise.then(handle(resolve)).catch(handle(reject));
   });
   cancelable.cancelFn = () => (canceled = true);
   return cancelable;
