@@ -12,11 +12,21 @@ export interface CodeEditorHook {
   readonly element: JSX.Element;
 }
 
-export default function useCodeEditor(language: Language): CodeEditorHook {
-  const [doc, setDoc] = useState('');
+export default function useCodeEditor(
+  language: Language,
+  initialDoc?: string,
+): CodeEditorHook {
+  const [initialDocState] = useState(initialDoc);
+  const [doc, setDoc] = useState(initialDoc ?? '');
   const element = useMemo(
-    () => <Editor language={language} onChange={setDoc} />,
-    [language],
+    () => (
+      <Editor
+        language={language}
+        initialDoc={initialDocState}
+        onChange={setDoc}
+      />
+    ),
+    [language, initialDocState],
   );
   return {
     value: doc,
@@ -26,15 +36,17 @@ export default function useCodeEditor(language: Language): CodeEditorHook {
 
 interface EditorProps {
   language: Language;
+  initialDoc?: string;
 
   onChange(value: string): void;
 }
 
-function Editor({ language, onChange }: EditorProps): JSX.Element {
+function Editor({ language, initialDoc, onChange }: EditorProps): JSX.Element {
   const parentRef = useRef(null);
   useEffect(() => {
     const view = new EditorView({
       state: EditorState.create({
+        doc: initialDoc,
         extensions: [
           basicSetup,
           keymap.of([defaultTabBinding]),
@@ -50,6 +62,6 @@ function Editor({ language, onChange }: EditorProps): JSX.Element {
       },
     });
     return () => view.destroy();
-  }, [language, onChange]);
+  }, [language, initialDoc, onChange]);
   return <div ref={parentRef} />;
 }

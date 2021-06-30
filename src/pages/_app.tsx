@@ -3,6 +3,7 @@ import type { Session } from 'next-auth';
 import { Provider as AuthProvider } from 'next-auth/client';
 import type { AppProps as NextAppProps } from 'next/app';
 import { SWRConfig } from 'swr';
+import LeafyGreenProvider from '@leafygreen-ui/leafygreen-provider';
 
 type AppProps<T> = Omit<NextAppProps<T>, 'pageProps'> & {
   pageProps: T;
@@ -24,7 +25,9 @@ export default function App({
       }}
     >
       <AuthProvider session={pageProps.session}>
-        <Component {...pageProps} />
+        <LeafyGreenProvider>
+          <Component {...pageProps} />
+        </LeafyGreenProvider>
       </AuthProvider>
     </SWRConfig>
   );

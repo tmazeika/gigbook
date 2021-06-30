@@ -30,6 +30,22 @@ export function TextInput(props: StringInputProps): JSX.Element {
   );
 }
 
+export function TextAreaInput(props: StringInputProps): JSX.Element {
+  const id = useId();
+  return (
+    <div>
+      <label htmlFor={id}>{props.label}</label>
+      <textarea
+        id={id}
+        maxLength={props.maxLength}
+        disabled={props.disabled}
+        value={props.controller.value}
+        onChange={(e) => props.controller.set(e.target.value)}
+      />
+    </div>
+  );
+}
+
 export interface DateInputProps {
   controller: FormValueController<DateTime>;
   label: string;

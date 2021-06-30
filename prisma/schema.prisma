@@ -52,10 +52,11 @@ model User {
   createdAt      DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime  @default(now()) @map("updated_at")
 
-  accounts Account[]
-  sessions Session[]
-  clients  Client[]
-  banks    Bank[]
+  accounts         Account[]
+  sessions         Session[]
+  clients          Client[]
+  banks            Bank[]
+  invoiceTemplates InvoiceTemplate[]
 
   @@map("users")
 }
@@ -105,4 +106,19 @@ model Bank {
 
   @@unique([userId, nickname])
   @@map("banks")
+}
+
+model InvoiceTemplate {
+  id        Int      @id @default(autoincrement())
+  userId    Int?     @map("user_id")
+  private   Boolean  @default(true)
+  html      String
+  css       String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @map("updated_at")
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("invoice_templates")
 }
