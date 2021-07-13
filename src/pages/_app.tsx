@@ -1,9 +1,9 @@
-import 'gigbook/pages/_app.css';
+// import 'gigbook/pages/_app.css';
+import 'bootstrap/dist/css/bootstrap.min.css';
 import type { Session } from 'next-auth';
 import { Provider as AuthProvider } from 'next-auth/client';
 import type { AppProps as NextAppProps } from 'next/app';
 import { SWRConfig } from 'swr';
-import LeafyGreenProvider from '@leafygreen-ui/leafygreen-provider';
 
 type AppProps<T> = Omit<NextAppProps<T>, 'pageProps'> & {
   pageProps: T;
@@ -25,9 +25,7 @@ export default function App({
       }}
     >
       <AuthProvider session={pageProps.session}>
-        <LeafyGreenProvider>
-          <Component {...pageProps} />
-        </LeafyGreenProvider>
+        <Component {...pageProps} />
       </AuthProvider>
     </SWRConfig>
   );

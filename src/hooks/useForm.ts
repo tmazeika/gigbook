@@ -3,6 +3,7 @@ import { FormEvent, useReducer, useState } from 'react';
 
 export interface FormValueController<T> {
   readonly value: Readonly<T>;
+
   set(value: Readonly<T>): void;
 }
 

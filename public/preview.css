@@ -1,0 +1,26 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  padding: 1in;
+  width: 8.5in;
+  height: 11in;
+}
+
+@media screen {
+  html {
+    background-color: lightgray;
+    padding: 10px;
+  }
+
+  body {
+    background-color: white;
+    box-shadow: 0 0 5px gray;
+    margin: 0 auto;
+  }
+}
+
+@page {
+  margin: 0;
+}

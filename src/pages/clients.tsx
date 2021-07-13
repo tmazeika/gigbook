@@ -1,51 +1,23 @@
 import Layout from 'gigbook/components/layout';
 import useClients from 'gigbook/hooks/useClients';
+import ListGroup from 'react-bootstrap/ListGroup';
+import Col from 'react-bootstrap/Col';
+import Row from 'react-bootstrap/Row';
 
 export default function Clients(): JSX.Element {
   const clients = useClients();
-  // const form = useForm({
-  //   initialValues: {
-  //     name: '',
-  //   },
-  //   onValidate({ name }, errors) {
-  //     if (!name) {
-  //       errors.name = 'Required';
-  //     }
-  //     if (clients.data.map((c) => c.name).includes(name)) {
-  //       errors.name = 'Already exists';
-  //     }
-  //   },
-  //   async onSubmit({ name }) {
-  //     await clients.save({ name });
-  //   },
-  // });
   return (
     <Layout>
-      <h1>Clients</h1>
-      <ul>
-        {clients.data.map((c) => (
-          <li key={c.id}>{c.clockifyId}</li>
-        ))}
-      </ul>
-      {/*<hr />*/}
-      {/*<form onSubmit={(e) => form.onSubmit(e)}>*/}
-      {/*  <div>*/}
-      {/*    <label htmlFor="name">Name</label>*/}
-      {/*    <input*/}
-      {/*      id="name"*/}
-      {/*      type="text"*/}
-      {/*      maxLength={255}*/}
-      {/*      autoComplete="off"*/}
-      {/*      value={form.values.name}*/}
-      {/*      onChange={form.onChange('name')}*/}
-      {/*    />*/}
-      {/*    {form.errors.name && <div>{form.errors.name}</div>}*/}
-      {/*  </div>*/}
-      {/*  <button type="submit" disabled={form.isSubmitting}>*/}
-      {/*    Create*/}
-      {/*  </button>*/}
-      {/*</form>*/}
-      {/*<button onClick={() => clients.deleteAll()}>Delete All</button>*/}
+      <Row>
+        <Col>
+          <h1>Clients</h1>
+          <ListGroup>
+            {clients.data.map((c) => (
+              <ListGroup.Item key={c.id}>{c.clockifyId}</ListGroup.Item>
+            ))}
+          </ListGroup>
+        </Col>
+      </Row>
     </Layout>
   );
 }
