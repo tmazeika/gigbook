@@ -1,5 +1,9 @@
-import Clockify, { ClockifyWorkspace } from 'gigbook/clockify/client';
+import Clockify, {
+  ClockifyClient,
+  ClockifyWorkspace,
+} from 'gigbook/clockify/client';
 import Layout from 'gigbook/components/layout';
+import useClockifyClients from 'gigbook/hooks/useClockifyClients';
 import useClockifyWorkspaces from 'gigbook/hooks/useClockifyWorkspaces';
 import useForm from 'gigbook/hooks/useForm';
 import { NumberInputValue } from 'gigbook/util/type';
@@ -42,6 +46,8 @@ export default function Index(): JSX.Element {
   const workspaces = useClockifyWorkspaces(apiKey?.apiKey);
   const [selectedWorkspace, setSelectedWorkspace] =
     useState<ClockifyWorkspace>();
+  const clients = useClockifyClients(apiKey?.apiKey, selectedWorkspace?.id);
+  const [selectedClient, setSelectedClient] = useState<ClockifyClient>();
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
   const [lineItemsLoading, setLineItemsLoading] = useState(false);
   useEffect(() => {
@@ -49,6 +55,11 @@ export default function Index(): JSX.Element {
       setSelectedWorkspace(workspaces[0]);
     }
   }, [workspaces]);
+  useEffect(() => {
+    if (clients?.length) {
+      setSelectedClient(clients[0]);
+    }
+  }, [clients]);
   const form = useForm({
     initialValues: {
       id: '',
@@ -396,18 +407,42 @@ export default function Index(): JSX.Element {
               </Dropdown.Item>
             ))}
           </DropdownButton>
+          <DropdownButton
+            className="mr-2"
+            disabled={!clients?.length}
+            title={selectedClient?.name ?? 'Select client'}
+            size="sm"
+            onSelect={(id) =>
+              setSelectedClient(clients?.find((w) => w.id === id))
+            }
+          >
+            {clients?.map((client) => (
+              <Dropdown.Item
+                key={client.id}
+                eventKey={client.id}
+                active={selectedClient?.id === client.id}
+              >
+                {client.name}
+              </Dropdown.Item>
+            ))}
+          </DropdownButton>
           <Button
             variant="outline-primary"
             size="sm"
             disabled={
-              apiKey === undefined || !selectedWorkspace || lineItemsLoading
+              apiKey === undefined ||
+              !selectedWorkspace ||
+              !selectedClient ||
+              lineItemsLoading
             }
             onClick={async () => {
               setLineItemsLoading(true);
               const clockify = new Clockify(apiKey?.apiKey ?? '');
               const invoice = await clockify.getInvoice(
                 selectedWorkspace?.id ?? '',
+                selectedClient?.id ?? '',
                 form.values.periodStart,
+                form.values.periodEnd,
               );
               const all = Object.values(invoice.clients)[0].lineItems.map(
                 (li): LineItem => ({

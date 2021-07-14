@@ -51,6 +51,12 @@ export interface ClockifyWorkspace {
   name: string;
 }
 
+export interface ClockifyClient {
+  id: string;
+  workspaceId: string;
+  name: string;
+}
+
 export interface ClockifyInvoice {
   period: {
     start: DateTime;
@@ -96,19 +102,33 @@ export default class Clockify {
     }));
   }
 
+  async getClients(workspaceId: string): Promise<ClockifyClient[]> {
+    const clients = (await this.get(`workspaces/${workspaceId}/clients`, {
+      archived: false,
+      'sort-column': 'name',
+      'sort-order': 'ascending',
+    })) as ClockifyClient[];
+    return clients.map((c) => ({
+      id: c.id,
+      workspaceId: c.workspaceId,
+      name: c.name,
+    }));
+  }
+
   async getInvoice(
     workspaceId: string,
-    date: DateTime,
+    clientId: string,
+    dateStart: DateTime,
+    dateEnd: DateTime,
   ): Promise<ClockifyInvoice> {
-    const start = date.startOf('month');
-    const end = start.endOf('month');
+    console.assert(dateStart.zone.equals(dateEnd.zone));
     const report = (await this.getReport(
       `workspaces/${workspaceId}/reports/detailed`,
       {
         exportType: 'JSON',
-        dateRangeStart: start.toISO({ includeOffset: false }),
-        dateRangeEnd: end.toISO({ includeOffset: false }),
-        timeZone: date.zone.name,
+        dateRangeStart: dateStart.toISO({ includeOffset: false }),
+        dateRangeEnd: dateEnd.toISO({ includeOffset: false }),
+        timeZone: dateStart.zone.name,
         amountShown: 'EARNED',
         billable: true,
         detailedFilter: {
@@ -118,16 +138,21 @@ export default class Clockify {
             totals: 'EXCLUDE',
           },
         },
+        clients: {
+          ids: [clientId],
+          contains: 'CONTAINS',
+          status: 'ALL',
+        },
       },
     )) as ClockifyAPIReport;
     const invoice: ClockifyInvoice = {
       period: {
-        start,
-        end,
+        start: dateStart,
+        end: dateEnd,
       },
       clients: {},
     };
-    for (const timeEntry of report.timeentries) {
+    report.timeentries.forEach((timeEntry) => {
       const duration = DateTime.fromISO(timeEntry.timeInterval.end).diff(
         DateTime.fromISO(timeEntry.timeInterval.start),
       );
@@ -154,7 +179,7 @@ export default class Clockify {
           rate: timeEntry.rate,
         });
       }
-    }
+    });
     return invoice;
   }
 

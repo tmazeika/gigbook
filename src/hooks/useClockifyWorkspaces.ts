@@ -8,10 +8,9 @@ export default function useClockifyWorkspaces(
 
   const validApiKey = apiKey?.length === 48 ? apiKey : null;
   useEffect(() => {
+    setWorkspaces(undefined);
     if (validApiKey) {
       void new Clockify(validApiKey).getWorkspaces().then(setWorkspaces);
-    } else {
-      setWorkspaces(undefined);
     }
   }, [validApiKey]);
 
