@@ -81,8 +81,23 @@ export interface ClockifyInvoice {
 export default class Clockify {
   private readonly apiKey: string;
 
-  constructor(apiKey: string) {
-    this.apiKey = apiKey;
+  constructor(apiKey?: string) {
+    this.apiKey = apiKey ?? '';
+  }
+
+  async isValid(): Promise<boolean> {
+    if (!/^[a-z0-9]{48}$/i.test(this.apiKey)) {
+      return false;
+    }
+    try {
+      await this.get('user');
+      return true;
+    } catch (e) {
+      if (isClockifyError(e) && e.status === 401) {
+        return false;
+      }
+      throw e;
+    }
   }
 
   async getUser(): Promise<ClockifyUser> {

@@ -1,25 +1,21 @@
-import Clockify, {
-  ClockifyClient,
-  ClockifyWorkspace,
-} from 'gigbook/clockify/client';
+import { ClockifyClient, ClockifyWorkspace } from 'gigbook/clockify/client';
+import ClockifyApiKeyButton from 'gigbook/components/clockifyApiKeyButton';
+import ClockifyClientSelect from 'gigbook/components/clockifyClientSelect';
+import ClockifyImportButton from 'gigbook/components/clockifyImportButton';
+import ClockifyWorkspaceSelect from 'gigbook/components/clockifyWorkspaceSelect';
 import Layout from 'gigbook/components/layout';
-import useClockifyClients from 'gigbook/hooks/useClockifyClients';
-import useClockifyWorkspaces from 'gigbook/hooks/useClockifyWorkspaces';
 import useForm from 'gigbook/hooks/useForm';
 import { NumberInputValue } from 'gigbook/util/type';
 import { DateTime, Duration } from 'luxon';
-import { useEffect, useMemo, useState } from 'react';
-import { ButtonToolbar } from 'react-bootstrap';
+import { useCallback, useMemo, useState } from 'react';
 import Button from 'react-bootstrap/Button';
 import ButtonGroup from 'react-bootstrap/ButtonGroup';
 import Col from 'react-bootstrap/Col';
-import Dropdown from 'react-bootstrap/Dropdown';
-import DropdownButton from 'react-bootstrap/DropdownButton';
+import FloatingLabel from 'react-bootstrap/FloatingLabel';
 import Form from 'react-bootstrap/Form';
 import InputGroup from 'react-bootstrap/InputGroup';
+import Row from 'react-bootstrap/Row';
 import Table from 'react-bootstrap/Table';
-import useSWR from 'swr';
-import * as uuid from 'uuid';
 
 const numberFormatter = new Intl.NumberFormat();
 
@@ -42,24 +38,8 @@ const lastMonth = today
   .startOf('month');
 
 export default function Index(): JSX.Element {
-  const { data: apiKey } = useSWR<{ apiKey: string }>('/api/clockify/api-key');
-  const workspaces = useClockifyWorkspaces(apiKey?.apiKey);
-  const [selectedWorkspace, setSelectedWorkspace] =
-    useState<ClockifyWorkspace>();
-  const clients = useClockifyClients(apiKey?.apiKey, selectedWorkspace?.id);
-  const [selectedClient, setSelectedClient] = useState<ClockifyClient>();
-  const [lineItems, setLineItems] = useState<LineItem[]>([]);
-  const [lineItemsLoading, setLineItemsLoading] = useState(false);
-  useEffect(() => {
-    if (workspaces?.length) {
-      setSelectedWorkspace(workspaces[0]);
-    }
-  }, [workspaces]);
-  useEffect(() => {
-    if (clients?.length) {
-      setSelectedClient(clients[0]);
-    }
-  }, [clients]);
+  const [workspace, setWorkspace] = useState<ClockifyWorkspace>();
+  const [client, setClient] = useState<ClockifyClient>();
   const form = useForm({
     initialValues: {
       id: '',
@@ -71,11 +51,11 @@ export default function Index(): JSX.Element {
       myAddress: '',
       clientName: '',
       clientAddress: '',
-      clientCurrency: 'USD',
+      clientCurrency: 'usd',
       lineItems: [] as LineItem[],
       billingIncrement: NumberInputValue.fromNumber(6),
       billingNet: NumberInputValue.fromNumber(30),
-      billingCurrency: 'USD',
+      billingCurrency: 'usd',
       bank: [] as BankDetail[],
       template: '',
       templateStyles: '',
@@ -95,49 +75,53 @@ export default function Index(): JSX.Element {
   );
   const dueDate = form.values.date
     .plus(Duration.fromObject({ days: form.values.billingNet.n ?? 0 }))
-    .toLocaleString();
+    .toLocaleString({ dateStyle: 'medium' });
   const billingIncrementOk = form.values.billingIncrement.n
     ? Number.isInteger((form.values.billingIncrement.n / 60) * 100)
     : true;
+
+  const onWorkspaceChange = useCallback((w?: ClockifyWorkspace) => {
+    setWorkspace(w);
+    setClient(undefined);
+  }, []);
 
   return (
     <Layout>
       <Form noValidate onSubmit={(e) => form.onSubmit(e)}>
         <h3>Invoice</h3>
-        <Form.Row>
+        <Row className="mb-3">
           <Col>
-            <Form.Group controlId="id">
-              <Form.Label>ID</Form.Label>
+            <FloatingLabel controlId="floating-id" label="ID">
               <Form.Control
                 type="text"
-                placeholder="000 001"
+                placeholder=""
                 value={form.values.id}
                 onChange={(e) => form.set('id', e.target.value)}
               />
-            </Form.Group>
+            </FloatingLabel>
           </Col>
           <Col>
             <Form.Group controlId="date">
-              <Form.Label>Date</Form.Label>
-              <Form.Control
-                type="date"
-                value={form.values.date.toISODate()}
-                onChange={(e) => {
-                  if (e.target.value === '') {
-                    form.set('date', today.startOf('day'));
-                    return;
-                  }
-                  form.set(
-                    'date',
-                    DateTime.fromISO(e.target.value, { zone: 'local' }),
-                  );
-                }}
-              />
+              <FloatingLabel controlId="floating-date" label="Date">
+                <Form.Control
+                  type="date"
+                  value={form.values.date.toISODate()}
+                  onChange={(e) => {
+                    if (e.target.value === '') {
+                      form.set('date', today.startOf('day'));
+                      return;
+                    }
+                    form.set(
+                      'date',
+                      DateTime.fromISO(e.target.value, { zone: 'local' }),
+                    );
+                  }}
+                />
+              </FloatingLabel>
               <Form.Text>
-                <ButtonGroup>
+                <ButtonGroup size="sm">
                   <Button
                     variant="link"
-                    size="sm"
                     onClick={() =>
                       form.set(
                         'date',
@@ -149,7 +133,6 @@ export default function Index(): JSX.Element {
                   </Button>
                   <Button
                     variant="link"
-                    size="sm"
                     onClick={() => form.set('date', today.startOf('month'))}
                   >
                     Start of Month
@@ -160,32 +143,35 @@ export default function Index(): JSX.Element {
           </Col>
           <Col>
             <Form.Group controlId="period-start">
-              <Form.Label>Period Start</Form.Label>
-              <Form.Control
-                type="date"
-                max={form.values.periodEnd.toISODate()}
-                value={form.values.periodStart.toISODate()}
-                onChange={(e) => {
-                  if (e.target.value === '') {
-                    form.set(
-                      'periodStart',
-                      DateTime.min(form.values.periodEnd, lastMonth),
-                    );
-                    return;
-                  }
-                  const date = DateTime.fromISO(e.target.value, {
-                    zone: 'local',
-                  });
-                  if (date.valueOf() <= form.values.periodEnd.valueOf()) {
-                    form.set('periodStart', date);
-                  }
-                }}
-              />
+              <FloatingLabel
+                controlId="floating-period-start"
+                label="Period Start"
+              >
+                <Form.Control
+                  type="date"
+                  max={form.values.periodEnd.toISODate()}
+                  value={form.values.periodStart.toISODate()}
+                  onChange={(e) => {
+                    if (e.target.value === '') {
+                      form.set(
+                        'periodStart',
+                        form.values.periodEnd.startOf('month'),
+                      );
+                      return;
+                    }
+                    const date = DateTime.fromISO(e.target.value, {
+                      zone: 'local',
+                    });
+                    if (date.valueOf() <= form.values.periodEnd.valueOf()) {
+                      form.set('periodStart', date);
+                    }
+                  }}
+                />
+              </FloatingLabel>
               <Form.Text>
-                <ButtonGroup>
+                <ButtonGroup size="sm">
                   <Button
                     variant="link"
-                    size="sm"
                     onClick={() => {
                       form.set('periodStart', lastMonth);
                       form.set(
@@ -198,7 +184,6 @@ export default function Index(): JSX.Element {
                   </Button>
                   <Button
                     variant="link"
-                    size="sm"
                     onClick={() => {
                       form.set('periodStart', today.startOf('month'));
                       form.set(
@@ -215,109 +200,115 @@ export default function Index(): JSX.Element {
           </Col>
           <Col>
             <Form.Group controlId="period-end">
-              <Form.Label>Period End</Form.Label>
-              <Form.Control
-                type="date"
-                min={form.values.periodStart.toISODate()}
-                value={form.values.periodEnd.toISODate()}
-                onChange={(e) => {
-                  if (e.target.value === '') {
-                    form.set(
-                      'periodEnd',
-                      DateTime.max(
-                        form.values.periodStart,
-                        lastMonth.endOf('month').startOf('day'),
-                      ),
-                    );
-                    return;
-                  }
-                  const date = DateTime.fromISO(e.target.value, {
-                    zone: 'local',
-                  });
-                  if (date.valueOf() >= form.values.periodStart.valueOf()) {
-                    form.set('periodEnd', date);
-                  }
-                }}
-              />
+              <FloatingLabel controlId="floating-period-end" label="Period End">
+                <Form.Control
+                  type="date"
+                  min={form.values.periodStart.toISODate()}
+                  value={form.values.periodEnd.toISODate()}
+                  onChange={(e) => {
+                    if (e.target.value === '') {
+                      form.set(
+                        'periodEnd',
+                        form.values.periodStart.endOf('month').startOf('day'),
+                      );
+                      return;
+                    }
+                    const date = DateTime.fromISO(e.target.value, {
+                      zone: 'local',
+                    });
+                    if (date.valueOf() >= form.values.periodStart.valueOf()) {
+                      form.set('periodEnd', date);
+                    }
+                  }}
+                />
+              </FloatingLabel>
               <Form.Text muted>{periodDiff} day period</Form.Text>
             </Form.Group>
           </Col>
-        </Form.Row>
+        </Row>
         <h3>Payee</h3>
-        <Form.Row>
+        <Row className="mb-3">
           <Col>
-            <Form.Group controlId="my-name">
-              <Form.Label>Name</Form.Label>
+            <FloatingLabel controlId="floating-my-name" label="Name">
               <Form.Control
                 type="text"
-                placeholder="My Company LLC"
+                placeholder=""
                 value={form.values.myName}
                 onChange={(e) => form.set('myName', e.target.value)}
               />
-            </Form.Group>
+            </FloatingLabel>
           </Col>
           <Col>
-            <Form.Group controlId="my-description">
-              <Form.Label>Description</Form.Label>
+            <FloatingLabel
+              controlId="floating-my-description"
+              label="Description"
+            >
               <Form.Control
                 type="text"
-                placeholder="Software Engineering Services"
+                placeholder=""
                 value={form.values.myDescription}
                 onChange={(e) => form.set('myDescription', e.target.value)}
               />
-            </Form.Group>
+            </FloatingLabel>
           </Col>
-        </Form.Row>
-        <Form.Group controlId="my-address">
-          <Form.Label>Address</Form.Label>
+        </Row>
+        <FloatingLabel
+          className="mb-3"
+          controlId="floating-my-address"
+          label="Address"
+        >
           <Form.Control
             as="textarea"
-            rows={3}
-            placeholder={'123 Main St\nBoston, MA 02115\nUnited States'}
+            style={{ height: '8em' }}
+            placeholder=""
             value={form.values.myAddress}
             onChange={(e) => form.set('myAddress', e.target.value)}
           />
-        </Form.Group>
+        </FloatingLabel>
         <h3>Client</h3>
-        <Form.Row>
+        <Row className="mb-3">
           <Col>
-            <Form.Group controlId="client-name">
-              <Form.Label>Name</Form.Label>
+            <FloatingLabel controlId="floating-client-name" label="Name">
               <Form.Control
                 type="text"
-                placeholder="Client Company LLC"
+                placeholder=""
                 value={form.values.clientName}
                 onChange={(e) => form.set('clientName', e.target.value)}
               />
-            </Form.Group>
+            </FloatingLabel>
           </Col>
           <Col>
-            <Form.Group controlId="client-currency">
-              <Form.Label>Preferred Currency</Form.Label>
-              <Form.Control
-                as="select"
-                custom
+            <FloatingLabel
+              controlId="floating-client-currency"
+              label="Preferred Currency"
+            >
+              <Form.Select
                 value={form.values.clientCurrency}
-                onChange={(e) => form.set('clientCurrency', e.target.value)}
+                onChange={(e) =>
+                  form.set('clientCurrency', e.currentTarget.value)
+                }
               >
-                <option>GBP</option>
-                <option>USD</option>
-              </Form.Control>
-            </Form.Group>
+                <option value="gbp">GBP</option>
+                <option value="usd">USD</option>
+              </Form.Select>
+            </FloatingLabel>
           </Col>
-        </Form.Row>
-        <Form.Group controlId="client-address">
-          <Form.Label>Address</Form.Label>
+        </Row>
+        <FloatingLabel
+          className="mb-3"
+          controlId="floating-client-address"
+          label="Address"
+        >
           <Form.Control
             as="textarea"
-            rows={3}
-            placeholder={'123 Main St\nBoston, MA 02115\nUnited States'}
+            style={{ height: '8em' }}
+            placeholder=""
             value={form.values.clientAddress}
             onChange={(e) => form.set('clientAddress', e.target.value)}
           />
-        </Form.Group>
+        </FloatingLabel>
         <h3>Billing</h3>
-        <Form.Row>
+        <Row className="mb-3">
           <Col>
             <Form.Group controlId="billing-increment">
               <Form.Label>Increment</Form.Label>
@@ -335,9 +326,7 @@ export default function Index(): JSX.Element {
                     }
                   }}
                 />
-                <InputGroup.Append>
-                  <InputGroup.Text>minutes</InputGroup.Text>
-                </InputGroup.Append>
+                <InputGroup.Text>minutes</InputGroup.Text>
               </InputGroup>
               {!billingIncrementOk && (
                 <Form.Text className="text-warning">
@@ -364,9 +353,7 @@ export default function Index(): JSX.Element {
                     }
                   }}
                 />
-                <InputGroup.Append>
-                  <InputGroup.Text>days</InputGroup.Text>
-                </InputGroup.Append>
+                <InputGroup.Text>days</InputGroup.Text>
               </InputGroup>
               <Form.Text muted>Due by {dueDate}</Form.Text>
             </Form.Group>
@@ -374,94 +361,51 @@ export default function Index(): JSX.Element {
           <Col>
             <Form.Group controlId="billing-currency">
               <Form.Label>Currency</Form.Label>
-              <Form.Control
-                as="select"
-                custom
+              <Form.Select
                 value={form.values.billingCurrency}
-                onChange={(e) => form.set('billingCurrency', e.target.value)}
+                onChange={(e) =>
+                  form.set('billingCurrency', e.currentTarget.value)
+                }
               >
-                <option>GBP</option>
-                <option>USD</option>
-              </Form.Control>
+                <option value="gbp">GBP</option>
+                <option value="usd">USD</option>
+              </Form.Select>
             </Form.Group>
           </Col>
-        </Form.Row>
+        </Row>
         <h3>Line Items</h3>
-        <ButtonToolbar className="mb-2">
-          <DropdownButton
-            className="mr-2"
-            disabled={!workspaces?.length}
-            title={selectedWorkspace?.name ?? 'Select workspace'}
-            size="sm"
-            onSelect={(id) =>
-              setSelectedWorkspace(workspaces?.find((w) => w.id === id))
-            }
-          >
-            {workspaces?.map((workspace) => (
-              <Dropdown.Item
-                key={workspace.id}
-                eventKey={workspace.id}
-                active={selectedWorkspace?.id === workspace.id}
-              >
-                {workspace.name}
-              </Dropdown.Item>
-            ))}
-          </DropdownButton>
-          <DropdownButton
-            className="mr-2"
-            disabled={!clients?.length}
-            title={selectedClient?.name ?? 'Select client'}
-            size="sm"
-            onSelect={(id) =>
-              setSelectedClient(clients?.find((w) => w.id === id))
-            }
-          >
-            {clients?.map((client) => (
-              <Dropdown.Item
-                key={client.id}
-                eventKey={client.id}
-                active={selectedClient?.id === client.id}
-              >
-                {client.name}
-              </Dropdown.Item>
-            ))}
-          </DropdownButton>
-          <Button
-            variant="outline-primary"
-            size="sm"
-            disabled={
-              apiKey === undefined ||
-              !selectedWorkspace ||
-              !selectedClient ||
-              lineItemsLoading
-            }
-            onClick={async () => {
-              setLineItemsLoading(true);
-              const clockify = new Clockify(apiKey?.apiKey ?? '');
-              const invoice = await clockify.getInvoice(
-                selectedWorkspace?.id ?? '',
-                selectedClient?.id ?? '',
-                form.values.periodStart,
-                form.values.periodEnd,
-              );
-              const all = Object.values(invoice.clients)[0].lineItems.map(
-                (li): LineItem => ({
-                  id: uuid.v4(),
-                  project: li.project.name,
-                  task: li.task,
-                  rate: li.rate / 100,
-                  quantity: li.quantity,
-                }),
-              );
-              form.set('lineItems', all);
-              setLineItems(all);
-              setLineItemsLoading(false);
-            }}
-          >
-            {lineItemsLoading ? 'Loading...' : 'Import'}
-          </Button>
-        </ButtonToolbar>
-        <Table striped bordered>
+        <Row className="mb-2 g-2">
+          <Col xs="auto">
+            <ClockifyApiKeyButton size="sm" />
+          </Col>
+          <Col xs="auto">
+            <ClockifyWorkspaceSelect
+              size="sm"
+              value={workspace}
+              onChange={onWorkspaceChange}
+            />
+          </Col>
+          <Col xs="auto">
+            <ClockifyClientSelect
+              size="sm"
+              workspaceId={workspace?.id}
+              value={client}
+              onChange={setClient}
+            />
+          </Col>
+          <Col xs="auto">
+            <ClockifyImportButton
+              size="sm"
+              dateStart={form.values.periodStart}
+              dateEnd={form.values.periodEnd}
+              workspaceId={workspace?.id}
+              clientId={client?.id}
+              lineItems={form.values.lineItems}
+              onChange={(li) => form.set('lineItems', li ?? [])}
+            />
+          </Col>
+        </Row>
+        <Table className="mb-3" striped bordered>
           <thead>
             <tr>
               <th>Project</th>
@@ -472,24 +416,24 @@ export default function Index(): JSX.Element {
             </tr>
           </thead>
           <tbody>
-            {lineItems.map((lineItem) => (
-              <tr key={lineItem.id}>
-                <td>{lineItem.project}</td>
-                <td>{lineItem.task}</td>
-                <td align="right">{currencyFormatter.format(lineItem.rate)}</td>
+            {form.values.lineItems.map((li) => (
+              <tr key={li.id}>
+                <td>{li.project}</td>
+                <td>{li.task}</td>
+                <td align="right">{currencyFormatter.format(li.rate)}</td>
                 <td align="right">
                   {numberFormatter.format(
                     roundQuantity(
-                      lineItem.quantity,
+                      li.quantity,
                       form.values.billingIncrement.n ?? 0,
                     ).as('hours'),
                   )}
                 </td>
                 <td align="right">
                   {currencyFormatter.format(
-                    lineItem.rate *
+                    li.rate *
                       roundQuantity(
-                        lineItem.quantity,
+                        li.quantity,
                         form.values.billingIncrement.n ?? 0,
                       ).as('hours'),
                   )}
@@ -501,12 +445,12 @@ export default function Index(): JSX.Element {
               <td align="right">
                 <strong>
                   {currencyFormatter.format(
-                    lineItems.reduce(
-                      (sum, lineItem) =>
+                    form.values.lineItems.reduce(
+                      (sum, li) =>
                         sum +
-                        lineItem.rate *
+                        li.rate *
                           roundQuantity(
-                            lineItem.quantity,
+                            li.quantity,
                             form.values.billingIncrement.n ?? 0,
                           ).as('hours'),
                       0,

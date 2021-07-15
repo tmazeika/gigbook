@@ -1,18 +1,17 @@
-import Clockify, { ClockifyUser } from 'gigbook/clockify/client';
+import { ClockifyUser } from 'gigbook/clockify/client';
+import useClockify from 'gigbook/hooks/useClockify';
 import { useEffect, useState } from 'react';
 
-export default function useClockifyUser(
-  apiKey: string,
-): ClockifyUser | undefined {
+export default function useClockifyUser(): ClockifyUser | undefined {
+  const clockify = useClockify();
   const [user, setUser] = useState<ClockifyUser>();
 
-  const validApiKey = apiKey.length === 48 ? apiKey : null;
   useEffect(() => {
-    setUser(undefined);
-    if (validApiKey) {
-      void new Clockify(validApiKey).getUser().then(setUser);
+    if (clockify) {
+      clockify.getUser().then(setUser).catch(console.error);
     }
-  }, [validApiKey]);
+    return () => setUser(undefined);
+  }, [clockify]);
 
   return user;
 }

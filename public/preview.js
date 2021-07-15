@@ -5,26 +5,26 @@ const rootUrl = `${currentScriptSrc.protocol}//${currentScriptSrc.host}`;
 const cssLink = document.createElement('link');
 cssLink.rel = 'stylesheet';
 cssLink.href = `${rootUrl}/preview.css`;
-document.head.append(cssLink);
+document.head.prepend(cssLink);
 
 // load Mustache and render
 const mustacheScript = document.createElement('script');
 mustacheScript.addEventListener('load', async () => {
   if (typeof data === 'undefined') {
-    const e = 'No template data found. Please define a global `data` variable.';
-    showError(e);
-    return;
+    return showError(
+      'No template data found. Please define a global `data` variable.',
+    );
   }
   try {
     const res = await fetch(window.location.href);
     let htmlSrc = await res.text();
-    htmlSrc = htmlSrc.replace(/<head ?.*?>.*<\/head ?.*?>/is, '')
+    htmlSrc = htmlSrc.replace(/<head ?.*?>.*<\/head ?.*?>/is, '');
     document.body.innerHTML = Mustache.render(
       /<body ?.*?>(.*)<\/body ?.*?>/is.exec(htmlSrc)[1],
       data,
     );
   } catch (e) {
-    showError(e);
+    showError(`Mustache ${e}`);
   }
 });
 mustacheScript.src = `${rootUrl}/mustache.min.js`;
