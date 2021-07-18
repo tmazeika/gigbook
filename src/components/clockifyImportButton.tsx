@@ -4,16 +4,15 @@ import { DateTime } from 'luxon';
 import { useState } from 'react';
 import Button from 'react-bootstrap/Button';
 import Spinner from 'react-bootstrap/Spinner';
-import * as uuid from 'uuid';
 
 export interface ClockifyImportButtonProps {
   size?: 'sm' | 'lg';
-  dateStart: DateTime;
-  dateEnd: DateTime;
+  startDate: DateTime;
+  endDate: DateTime;
   workspaceId?: string;
   clientId?: string;
   lineItems?: LineItem[];
-  onChange: (lineItems?: LineItem[]) => void;
+  onChange?: (lineItems?: LineItem[]) => void;
 }
 
 export default function ClockifyImportButton(
@@ -21,6 +20,7 @@ export default function ClockifyImportButton(
 ): JSX.Element {
   const clockify = useClockify();
   const [loading, setLoading] = useState(false);
+
   return (
     <>
       <Button
@@ -35,26 +35,26 @@ export default function ClockifyImportButton(
           const invoice = await clockify.getInvoice(
             props.workspaceId,
             props.clientId,
-            props.dateStart,
-            props.dateEnd,
+            props.startDate,
+            props.endDate,
           );
           const lineItems = invoice.clients[props.clientId]?.lineItems?.map(
             (li): LineItem => ({
-              id: uuid.v4(),
+              id: String(Math.random()),
               project: li.project.name,
               task: li.task,
-              rate: li.rate / 100,
+              rate: li.rate,
               quantity: li.quantity,
             }),
           );
-          props.onChange(lineItems);
+          props.onChange?.(lineItems);
           setLoading(false);
         }}
       >
         {loading ? (
           <>
-            <Spinner as="span" className="me-1" animation="border" size="sm" />{' '}
-            Importing...
+            <Spinner as="span" className="me-1" size="sm" animation="border" />
+            {' Importing...'}
           </>
         ) : (
           'Import'

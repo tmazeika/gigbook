@@ -1,11 +1,18 @@
+import Fraction from 'fraction.js';
 import { ClockifyClient, ClockifyWorkspace } from 'gigbook/clockify/client';
 import ClockifyApiKeyButton from 'gigbook/components/clockifyApiKeyButton';
 import ClockifyClientSelect from 'gigbook/components/clockifyClientSelect';
 import ClockifyImportButton from 'gigbook/components/clockifyImportButton';
 import ClockifyWorkspaceSelect from 'gigbook/components/clockifyWorkspaceSelect';
+import DateInput from 'gigbook/components/dateInput';
 import Layout from 'gigbook/components/layout';
+import LineItemsTable from 'gigbook/components/lineItemsTable';
+import NumberInput from 'gigbook/components/numberInput';
+import SelectInput from 'gigbook/components/selectInput';
+import TextInput from 'gigbook/components/textInput';
 import useForm from 'gigbook/hooks/useForm';
 import { NumberInputValue } from 'gigbook/util/type';
+
 import { DateTime, Duration } from 'luxon';
 import { useCallback, useMemo, useState } from 'react';
 import Button from 'react-bootstrap/Button';
@@ -15,15 +22,16 @@ import FloatingLabel from 'react-bootstrap/FloatingLabel';
 import Form from 'react-bootstrap/Form';
 import InputGroup from 'react-bootstrap/InputGroup';
 import Row from 'react-bootstrap/Row';
-import Table from 'react-bootstrap/Table';
 
-const numberFormatter = new Intl.NumberFormat();
+const numberFormatter = new Intl.NumberFormat(undefined, {
+  maximumFractionDigits: 2,
+});
 
 export interface LineItem {
   id: string;
   project: string;
   task: string;
-  rate: number;
+  rate: Fraction;
   quantity: Duration;
 }
 
@@ -51,14 +59,12 @@ export default function Index(): JSX.Element {
       myAddress: '',
       clientName: '',
       clientAddress: '',
-      clientCurrency: 'usd',
+      clientCurrency: 'usd' as 'usd' | 'gbp',
       lineItems: [] as LineItem[],
       billingIncrement: NumberInputValue.fromNumber(6),
       billingNet: NumberInputValue.fromNumber(30),
-      billingCurrency: 'usd',
+      billingCurrency: 'usd' as 'usd' | 'gbp',
       bank: [] as BankDetail[],
-      template: '',
-      templateStyles: '',
     },
   });
   const currencyFormatter = useMemo(
@@ -91,32 +97,14 @@ export default function Index(): JSX.Element {
         <h3>Invoice</h3>
         <Row className="mb-3">
           <Col>
-            <FloatingLabel controlId="floating-id" label="ID">
-              <Form.Control
-                type="text"
-                placeholder=""
-                value={form.values.id}
-                onChange={(e) => form.set('id', e.target.value)}
-              />
+            <FloatingLabel controlId="id-input" label="ID">
+              <TextInput controller={form.control('id')} />
             </FloatingLabel>
           </Col>
           <Col>
             <Form.Group controlId="date">
-              <FloatingLabel controlId="floating-date" label="Date">
-                <Form.Control
-                  type="date"
-                  value={form.values.date.toISODate()}
-                  onChange={(e) => {
-                    if (e.target.value === '') {
-                      form.set('date', today.startOf('day'));
-                      return;
-                    }
-                    form.set(
-                      'date',
-                      DateTime.fromISO(e.target.value, { zone: 'local' }),
-                    );
-                  }}
-                />
+              <FloatingLabel label="Date">
+                <DateInput controller={form.control('date')} />
               </FloatingLabel>
               <Form.Text>
                 <ButtonGroup size="sm">
@@ -143,30 +131,8 @@ export default function Index(): JSX.Element {
           </Col>
           <Col>
             <Form.Group controlId="period-start">
-              <FloatingLabel
-                controlId="floating-period-start"
-                label="Period Start"
-              >
-                <Form.Control
-                  type="date"
-                  max={form.values.periodEnd.toISODate()}
-                  value={form.values.periodStart.toISODate()}
-                  onChange={(e) => {
-                    if (e.target.value === '') {
-                      form.set(
-                        'periodStart',
-                        form.values.periodEnd.startOf('month'),
-                      );
-                      return;
-                    }
-                    const date = DateTime.fromISO(e.target.value, {
-                      zone: 'local',
-                    });
-                    if (date.valueOf() <= form.values.periodEnd.valueOf()) {
-                      form.set('periodStart', date);
-                    }
-                  }}
-                />
+              <FloatingLabel label="Period Start">
+                <DateInput controller={form.control('periodStart')} />
               </FloatingLabel>
               <Form.Text>
                 <ButtonGroup size="sm">
@@ -200,27 +166,8 @@ export default function Index(): JSX.Element {
           </Col>
           <Col>
             <Form.Group controlId="period-end">
-              <FloatingLabel controlId="floating-period-end" label="Period End">
-                <Form.Control
-                  type="date"
-                  min={form.values.periodStart.toISODate()}
-                  value={form.values.periodEnd.toISODate()}
-                  onChange={(e) => {
-                    if (e.target.value === '') {
-                      form.set(
-                        'periodEnd',
-                        form.values.periodStart.endOf('month').startOf('day'),
-                      );
-                      return;
-                    }
-                    const date = DateTime.fromISO(e.target.value, {
-                      zone: 'local',
-                    });
-                    if (date.valueOf() >= form.values.periodStart.valueOf()) {
-                      form.set('periodEnd', date);
-                    }
-                  }}
-                />
+              <FloatingLabel label="Period End">
+                <DateInput controller={form.control('periodEnd')} />
               </FloatingLabel>
               <Form.Text muted>{periodDiff} day period</Form.Text>
             </Form.Group>
@@ -229,103 +176,59 @@ export default function Index(): JSX.Element {
         <h3>Payee</h3>
         <Row className="mb-3">
           <Col>
-            <FloatingLabel controlId="floating-my-name" label="Name">
-              <Form.Control
-                type="text"
-                placeholder=""
-                value={form.values.myName}
-                onChange={(e) => form.set('myName', e.target.value)}
-              />
+            <FloatingLabel controlId="my-name" label="Name">
+              <TextInput controller={form.control('myName')} />
             </FloatingLabel>
           </Col>
           <Col>
-            <FloatingLabel
-              controlId="floating-my-description"
-              label="Description"
-            >
-              <Form.Control
-                type="text"
-                placeholder=""
-                value={form.values.myDescription}
-                onChange={(e) => form.set('myDescription', e.target.value)}
-              />
+            <FloatingLabel controlId="my-description" label="Description">
+              <TextInput controller={form.control('myDescription')} />
             </FloatingLabel>
           </Col>
         </Row>
-        <FloatingLabel
-          className="mb-3"
-          controlId="floating-my-address"
-          label="Address"
-        >
-          <Form.Control
-            as="textarea"
-            style={{ height: '8em' }}
-            placeholder=""
-            value={form.values.myAddress}
-            onChange={(e) => form.set('myAddress', e.target.value)}
-          />
-        </FloatingLabel>
+        <Row className="mb-3">
+          <Col>
+            <FloatingLabel controlId="my-address" label="Address">
+              <TextInput controller={form.control('myAddress')} textArea />
+            </FloatingLabel>
+          </Col>
+        </Row>
         <h3>Client</h3>
         <Row className="mb-3">
           <Col>
-            <FloatingLabel controlId="floating-client-name" label="Name">
-              <Form.Control
-                type="text"
-                placeholder=""
-                value={form.values.clientName}
-                onChange={(e) => form.set('clientName', e.target.value)}
-              />
+            <FloatingLabel controlId="client-name" label="Name">
+              <TextInput controller={form.control('clientName')} />
             </FloatingLabel>
           </Col>
           <Col>
             <FloatingLabel
-              controlId="floating-client-currency"
+              controlId="client-currency"
               label="Preferred Currency"
             >
-              <Form.Select
-                value={form.values.clientCurrency}
-                onChange={(e) =>
-                  form.set('clientCurrency', e.currentTarget.value)
-                }
-              >
-                <option value="gbp">GBP</option>
-                <option value="usd">USD</option>
-              </Form.Select>
+              <SelectInput
+                controller={form.control('clientCurrency')}
+                options={{
+                  usd: 'USD',
+                  gbp: 'GBP',
+                }}
+              />
             </FloatingLabel>
           </Col>
         </Row>
-        <FloatingLabel
-          className="mb-3"
-          controlId="floating-client-address"
-          label="Address"
-        >
-          <Form.Control
-            as="textarea"
-            style={{ height: '8em' }}
-            placeholder=""
-            value={form.values.clientAddress}
-            onChange={(e) => form.set('clientAddress', e.target.value)}
-          />
-        </FloatingLabel>
+        <Row className="mb-3">
+          <Col>
+            <FloatingLabel controlId="client-address" label="Address">
+              <TextInput controller={form.control('clientAddress')} textArea />
+            </FloatingLabel>
+          </Col>
+        </Row>
         <h3>Billing</h3>
         <Row className="mb-3">
           <Col>
             <Form.Group controlId="billing-increment">
               <Form.Label>Increment</Form.Label>
               <InputGroup>
-                <Form.Control
-                  type="text"
-                  value={form.values.billingIncrement.text}
-                  onChange={(e) => {
-                    const n = NumberInputValue.fromText(e.target.value, {
-                      integer: true,
-                      positive: true,
-                    });
-                    if (n.isValid) {
-                      form.set('billingIncrement', n);
-                    }
-                  }}
-                />
+                <NumberInput controller={form.control('billingIncrement')} />
                 <InputGroup.Text>minutes</InputGroup.Text>
               </InputGroup>
               {!billingIncrementOk && (
@@ -340,19 +243,7 @@ export default function Index(): JSX.Element {
             <Form.Group controlId="billing-net">
               <Form.Label>Net Terms</Form.Label>
               <InputGroup>
-                <Form.Control
-                  type="text"
-                  value={form.values.billingNet.text}
-                  onChange={(e) => {
-                    const n = NumberInputValue.fromText(e.target.value, {
-                      integer: true,
-                      positive: true,
-                    });
-                    if (n.isValid) {
-                      form.set('billingNet', n);
-                    }
-                  }}
-                />
+                <NumberInput controller={form.control('billingNet')} />
                 <InputGroup.Text>days</InputGroup.Text>
               </InputGroup>
               <Form.Text muted>Due by {dueDate}</Form.Text>
@@ -361,15 +252,13 @@ export default function Index(): JSX.Element {
           <Col>
             <Form.Group controlId="billing-currency">
               <Form.Label>Currency</Form.Label>
-              <Form.Select
-                value={form.values.billingCurrency}
-                onChange={(e) =>
-                  form.set('billingCurrency', e.currentTarget.value)
-                }
-              >
-                <option value="gbp">GBP</option>
-                <option value="usd">USD</option>
-              </Form.Select>
+              <SelectInput
+                controller={form.control('billingCurrency')}
+                options={{
+                  gbp: 'GBP',
+                  usd: 'USD',
+                }}
+              />
             </Form.Group>
           </Col>
         </Row>
@@ -396,8 +285,8 @@ export default function Index(): JSX.Element {
           <Col xs="auto">
             <ClockifyImportButton
               size="sm"
-              dateStart={form.values.periodStart}
-              dateEnd={form.values.periodEnd}
+              startDate={form.values.periodStart}
+              endDate={form.values.periodEnd}
               workspaceId={workspace?.id}
               clientId={client?.id}
               lineItems={form.values.lineItems}
@@ -405,76 +294,15 @@ export default function Index(): JSX.Element {
             />
           </Col>
         </Row>
-        <Table className="mb-3" striped bordered>
-          <thead>
-            <tr>
-              <th>Project</th>
-              <th>Task</th>
-              <th>Rate</th>
-              <th>Hours</th>
-              <th>Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {form.values.lineItems.map((li) => (
-              <tr key={li.id}>
-                <td>{li.project}</td>
-                <td>{li.task}</td>
-                <td align="right">{currencyFormatter.format(li.rate)}</td>
-                <td align="right">
-                  {numberFormatter.format(
-                    roundQuantity(
-                      li.quantity,
-                      form.values.billingIncrement.n ?? 0,
-                    ).as('hours'),
-                  )}
-                </td>
-                <td align="right">
-                  {currencyFormatter.format(
-                    li.rate *
-                      roundQuantity(
-                        li.quantity,
-                        form.values.billingIncrement.n ?? 0,
-                      ).as('hours'),
-                  )}
-                </td>
-              </tr>
-            ))}
-            <tr>
-              <td colSpan={4} />
-              <td align="right">
-                <strong>
-                  {currencyFormatter.format(
-                    form.values.lineItems.reduce(
-                      (sum, li) =>
-                        sum +
-                        li.rate *
-                          roundQuantity(
-                            li.quantity,
-                            form.values.billingIncrement.n ?? 0,
-                          ).as('hours'),
-                      0,
-                    ),
-                  )}
-                </strong>
-              </td>
-            </tr>
-          </tbody>
-        </Table>
+        <LineItemsTable
+          lineItems={form.values.lineItems}
+          currency={form.values.billingCurrency}
+          increment={form.values.billingIncrement.n ?? 0}
+        />
         <Button variant="primary" type="submit">
           Generate
         </Button>
       </Form>
     </Layout>
   );
-}
-
-function roundQuantity(quantity: Duration, incrementMinutes: number): Duration {
-  const quantityMinutes = quantity.as('minutes');
-  return incrementMinutes
-    ? Duration.fromObject({
-        minutes:
-          Math.ceil(quantityMinutes / incrementMinutes) * incrementMinutes,
-      })
-    : quantity;
 }

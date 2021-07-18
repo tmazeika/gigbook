@@ -1,11 +1,12 @@
 import Layout from 'gigbook/components/layout';
 import useClients from 'gigbook/hooks/useClients';
-import ListGroup from 'react-bootstrap/ListGroup';
 import Col from 'react-bootstrap/Col';
+import ListGroup from 'react-bootstrap/ListGroup';
 import Row from 'react-bootstrap/Row';
 
 export default function Clients(): JSX.Element {
   const clients = useClients();
+
   return (
     <Layout>
       <Row>

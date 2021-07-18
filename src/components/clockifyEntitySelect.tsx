@@ -10,7 +10,7 @@ export interface ClockifyEntitySelectProps<T> {
   size?: 'sm' | 'lg';
   entities: T[] | undefined;
   value?: T;
-  onChange: (value?: T) => void;
+  onChange?: (value?: T) => void;
 }
 
 export default function ClockifyEntitySelect<T extends Entity>(
@@ -18,11 +18,13 @@ export default function ClockifyEntitySelect<T extends Entity>(
 ): JSX.Element {
   const { onChange } = props;
   const entity0 = props.entities?.[0];
+
   useEffect(() => {
     if (entity0) {
-      onChange(entity0);
+      onChange?.(entity0);
     }
   }, [onChange, entity0]);
+
   return (
     <Form.Select
       size={props.size}
@@ -30,10 +32,8 @@ export default function ClockifyEntitySelect<T extends Entity>(
       placeholder=""
       disabled={!props.entities?.length}
       value={props.value?.id}
-      onChange={(evt) =>
-        props.onChange(
-          props.entities?.find((e) => e.id === evt.currentTarget.value),
-        )
+      onChange={({ currentTarget }) =>
+        onChange?.(props.entities?.find((e) => e.id === currentTarget.value))
       }
     >
       {props.entities?.map((e) => (

@@ -1,3 +1,4 @@
+import Fraction from 'fraction.js';
 import { buildUrl } from 'gigbook/util/url';
 import { DateTime, Duration } from 'luxon';
 
@@ -71,8 +72,8 @@ export interface ClockifyInvoice {
           name: string;
         };
         task: string;
+        rate: Fraction;
         quantity: Duration;
-        rate: number;
       }[];
     };
   };
@@ -118,6 +119,7 @@ export default class Clockify {
   }
 
   async getClients(workspaceId: string): Promise<ClockifyClient[]> {
+    workspaceId = encodeURIComponent(workspaceId);
     const clients = (await this.get(`workspaces/${workspaceId}/clients`, {
       archived: false,
       'sort-column': 'name',
@@ -133,17 +135,18 @@ export default class Clockify {
   async getInvoice(
     workspaceId: string,
     clientId: string,
-    dateStart: DateTime,
-    dateEnd: DateTime,
+    from: DateTime,
+    to: DateTime,
   ): Promise<ClockifyInvoice> {
-    console.assert(dateStart.zone.equals(dateEnd.zone));
+    console.assert(from.zone.equals(to.zone));
+    workspaceId = encodeURIComponent(workspaceId);
     const report = (await this.getReport(
       `workspaces/${workspaceId}/reports/detailed`,
       {
         exportType: 'JSON',
-        dateRangeStart: dateStart.toISO({ includeOffset: false }),
-        dateRangeEnd: dateEnd.toISO({ includeOffset: false }),
-        timeZone: dateStart.zone.name,
+        dateRangeStart: from.toISO({ includeOffset: false }),
+        dateRangeEnd: to.toISO({ includeOffset: false }),
+        timeZone: from.zone.name,
         amountShown: 'EARNED',
         billable: true,
         detailedFilter: {
@@ -162,8 +165,8 @@ export default class Clockify {
     )) as ClockifyAPIReport;
     const invoice: ClockifyInvoice = {
       period: {
-        start: dateStart,
-        end: dateEnd,
+        start: from,
+        end: to,
       },
       clients: {},
     };
@@ -175,11 +178,12 @@ export default class Clockify {
         name: timeEntry.clientName,
         lineItems: [],
       });
+      const rate = new Fraction(timeEntry.rate).div(100);
       const lineItem = client.lineItems.find(
         (i) =>
           i.project.id === timeEntry.projectId &&
           i.task === timeEntry.description &&
-          i.rate === timeEntry.rate,
+          i.rate.equals(rate),
       );
       if (lineItem) {
         lineItem.quantity = lineItem.quantity.plus(duration);
@@ -190,8 +194,8 @@ export default class Clockify {
             name: timeEntry.projectName,
           },
           task: timeEntry.description,
+          rate,
           quantity: duration,
-          rate: timeEntry.rate,
         });
       }
     });

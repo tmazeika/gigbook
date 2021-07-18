@@ -9,7 +9,7 @@ export interface FormControlModalProps {
   show: boolean;
   onHide: () => void;
   onSave: (value: string) => boolean | Promise<boolean>;
-  children: (
+  children?: (
     value: string,
     setValue: (value: string) => void,
     save: () => Promise<boolean>,
@@ -36,22 +36,16 @@ export default function FormControlModal(
     <Modal
       size="lg"
       show={props.show}
-      onHide={() => props.onHide()}
+      onHide={props.onHide}
       onEnter={() => setValue(props.initialValue ?? '')}
     >
       <Modal.Header closeButton>{props.title}</Modal.Header>
-      <Modal.Body>
-        {props.children(
-          value,
-          (value) => setValue(value),
-          () => onSave(),
-        )}
-      </Modal.Body>
+      <Modal.Body>{props.children?.(value, setValue, onSave)}</Modal.Body>
       <Modal.Footer>
-        <Button variant="outline-secondary" onClick={() => props.onHide()}>
+        <Button variant="outline-secondary" onClick={props.onHide}>
           Cancel
         </Button>
-        <Button variant="primary" disabled={loading} onClick={() => onSave()}>
+        <Button variant="primary" disabled={loading} onClick={onSave}>
           {loading ? (
             <>
               <Spinner

@@ -1,25 +1,22 @@
-import { Dispatch, SetStateAction, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
-export default function useLocalStorage<S>(
-  key: string,
-  state: [S, Dispatch<SetStateAction<S>>],
-): typeof state {
-  const [data, setData] = state;
+export default function useLocalStorage<T>(key: string, value: T): T {
+  const [storedValue, setStoredValue] = useState(value);
 
   useEffect(() => {
     const item = window.localStorage.getItem(key);
     if (item !== null) {
-      setData(JSON.parse(item));
+      setStoredValue(JSON.parse(item));
     }
-  }, [key, setData]);
+  }, [key]);
 
   useEffect(() => {
-    if (data === undefined) {
+    if (value === undefined || value === null) {
       window.localStorage.removeItem(key);
     } else {
-      window.localStorage.setItem(key, JSON.stringify(data));
+      window.localStorage.setItem(key, JSON.stringify(value));
     }
-  }, [key, data]);
+  }, [key, value]);
 
-  return state;
+  return storedValue;
 }

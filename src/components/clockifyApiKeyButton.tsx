@@ -15,6 +15,7 @@ export default function ClockifyApiKeyButton(
   const apiKey = useClockifyApiKey();
   const [show, setShow] = useState(false);
   const [invalid, setInvalid] = useState(false);
+
   return (
     <>
       <Button
@@ -53,7 +54,7 @@ export default function ClockifyApiKeyButton(
               </a>
               .
             </p>
-            <Form onSubmit={() => save()}>
+            <Form onSubmit={save}>
               <Form.Group controlId="api-key">
                 <Form.Control
                   type="text"

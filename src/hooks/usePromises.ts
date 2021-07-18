@@ -67,15 +67,15 @@ function makeCancelable<T>(
 ): CancelablePromise<T> {
   let canceled = false;
   const cancelable = new CancelablePromise<T>((resolve, reject) => {
-    function handle<R>(fn: (v: R) => void) {
-      return (v: R) => {
+    const handle =
+      <R>(fn: (v: R) => void) =>
+      (v: R) => {
         if (canceled && !suppressCancel) {
           reject(new CanceledError());
         } else if (!canceled) {
           fn(v);
         }
       };
-    }
     promise.then(handle(resolve)).catch(handle(reject));
   });
   cancelable.cancelFn = () => (canceled = true);

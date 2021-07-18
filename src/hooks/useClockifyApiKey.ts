@@ -15,7 +15,7 @@ export default function useClockifyApiKey(): ClockifyApiKey {
     value: data?.value ?? undefined,
     async update(value: string): Promise<void> {
       const res = await fetch('/api/clockify/api-key', {
-        method: 'post',
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },

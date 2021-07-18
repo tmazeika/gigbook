@@ -1,4 +1,3 @@
-// import 'gigbook/pages/_app.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import type { Session } from 'next-auth';
 import { Provider as AuthProvider } from 'next-auth/client';

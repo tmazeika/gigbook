@@ -7,7 +7,7 @@ export interface FormValueController<T> {
   set(value: Readonly<T>): void;
 }
 
-type FormErrors<T> = Partial<Record<keyof T, string>>;
+export type FormErrors<T> = Partial<Record<keyof T, string>>;
 
 export interface Form<T> {
   readonly values: Readonly<T>;

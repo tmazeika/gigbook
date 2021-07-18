@@ -6,13 +6,14 @@ export interface ClockifyClientSelectProps {
   size?: 'sm' | 'lg';
   workspaceId?: string;
   value?: ClockifyClient;
-  onChange: (value?: ClockifyClient) => void;
+  onChange?: (value?: ClockifyClient) => void;
 }
 
 export default function ClockifyClientSelect(
   props: ClockifyClientSelectProps,
 ): JSX.Element {
   const clients = useClockifyClients(props.workspaceId);
+
   return (
     <ClockifyEntitySelect
       size={props.size}
