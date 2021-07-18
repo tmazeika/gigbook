@@ -1,7 +1,7 @@
 import useSWR from 'swr';
 
 export interface ClockifyApiKey {
-  value?: string;
+  readonly value?: string;
 
   update(value: string): Promise<void>;
 }

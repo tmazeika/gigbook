@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import Form from 'react-bootstrap/Form';
 
 export interface Entity {
@@ -16,15 +15,6 @@ export interface ClockifyEntitySelectProps<T> {
 export default function ClockifyEntitySelect<T extends Entity>(
   props: ClockifyEntitySelectProps<T>,
 ): JSX.Element {
-  const { onChange } = props;
-  const entity0 = props.entities?.[0];
-
-  useEffect(() => {
-    if (entity0) {
-      onChange?.(entity0);
-    }
-  }, [onChange, entity0]);
-
   return (
     <Form.Select
       size={props.size}
@@ -32,8 +22,10 @@ export default function ClockifyEntitySelect<T extends Entity>(
       placeholder=""
       disabled={!props.entities?.length}
       value={props.value?.id}
-      onChange={({ currentTarget }) =>
-        onChange?.(props.entities?.find((e) => e.id === currentTarget.value))
+      onChange={(evt) =>
+        props.onChange?.(
+          props.entities?.find((e) => e.id === evt.currentTarget.value),
+        )
       }
     >
       {props.entities?.map((e) => (

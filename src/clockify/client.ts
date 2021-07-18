@@ -144,8 +144,8 @@ export default class Clockify {
       `workspaces/${workspaceId}/reports/detailed`,
       {
         exportType: 'JSON',
-        dateRangeStart: from.toISO({ includeOffset: false }),
-        dateRangeEnd: to.toISO({ includeOffset: false }),
+        dateRangeStart: from.startOf('day').toISO({ includeOffset: false }),
+        dateRangeEnd: to.endOf('day').toISO({ includeOffset: false }),
         timeZone: from.zone.name,
         amountShown: 'EARNED',
         billable: true,

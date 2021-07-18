@@ -1,20 +1,20 @@
 import Fraction from 'fraction.js';
-import { ClockifyClient, ClockifyWorkspace } from 'gigbook/clockify/client';
 import ClockifyApiKeyButton from 'gigbook/components/clockifyApiKeyButton';
-import ClockifyClientSelect from 'gigbook/components/clockifyClientSelect';
+import ClockifyEntitySelect from 'gigbook/components/clockifyEntitySelect';
 import ClockifyImportButton from 'gigbook/components/clockifyImportButton';
-import ClockifyWorkspaceSelect from 'gigbook/components/clockifyWorkspaceSelect';
 import DateInput from 'gigbook/components/dateInput';
 import Layout from 'gigbook/components/layout';
 import LineItemsTable from 'gigbook/components/lineItemsTable';
 import NumberInput from 'gigbook/components/numberInput';
 import SelectInput from 'gigbook/components/selectInput';
 import TextInput from 'gigbook/components/textInput';
+import useClockifyClients from 'gigbook/hooks/useClockifyClients';
+import useClockifyWorkspaces from 'gigbook/hooks/useClockifyWorkspaces';
 import useForm from 'gigbook/hooks/useForm';
+import useSelect from 'gigbook/hooks/useSelect';
 import { NumberInputValue } from 'gigbook/util/type';
 
 import { DateTime, Duration } from 'luxon';
-import { useCallback, useMemo, useState } from 'react';
 import Button from 'react-bootstrap/Button';
 import ButtonGroup from 'react-bootstrap/ButtonGroup';
 import Col from 'react-bootstrap/Col';
@@ -46,8 +46,6 @@ const lastMonth = today
   .startOf('month');
 
 export default function Index(): JSX.Element {
-  const [workspace, setWorkspace] = useState<ClockifyWorkspace>();
-  const [client, setClient] = useState<ClockifyClient>();
   const form = useForm({
     initialValues: {
       id: '',
@@ -67,14 +65,6 @@ export default function Index(): JSX.Element {
       bank: [] as BankDetail[],
     },
   });
-  const currencyFormatter = useMemo(
-    () =>
-      new Intl.NumberFormat(undefined, {
-        style: 'currency',
-        currency: form.values.billingCurrency,
-      }),
-    [form.values.billingCurrency],
-  );
   const periodDiff = numberFormatter.format(
     form.values.periodEnd.diff(form.values.periodStart, ['days', 'hours'])
       .days + 1,
@@ -86,10 +76,12 @@ export default function Index(): JSX.Element {
     ? Number.isInteger((form.values.billingIncrement.n / 60) * 100)
     : true;
 
-  const onWorkspaceChange = useCallback((w?: ClockifyWorkspace) => {
-    setWorkspace(w);
-    setClient(undefined);
-  }, []);
+  const workspaces = useClockifyWorkspaces();
+  const [selectedWorkspace, selectWorkspace] = useSelect(workspaces);
+  const clients = useClockifyClients(
+    workspaces?.find((w) => w.id === selectedWorkspace?.id)?.id,
+  );
+  const [selectedClient, selectClient] = useSelect(clients);
 
   return (
     <Layout>
@@ -132,7 +124,10 @@ export default function Index(): JSX.Element {
           <Col>
             <Form.Group controlId="period-start">
               <FloatingLabel label="Period Start">
-                <DateInput controller={form.control('periodStart')} />
+                <DateInput
+                  max={form.values.periodEnd}
+                  controller={form.control('periodStart')}
+                />
               </FloatingLabel>
               <Form.Text>
                 <ButtonGroup size="sm">
@@ -167,7 +162,10 @@ export default function Index(): JSX.Element {
           <Col>
             <Form.Group controlId="period-end">
               <FloatingLabel label="Period End">
-                <DateInput controller={form.control('periodEnd')} />
+                <DateInput
+                  min={form.values.periodStart}
+                  controller={form.control('periodEnd')}
+                />
               </FloatingLabel>
               <Form.Text muted>{periodDiff} day period</Form.Text>
             </Form.Group>
@@ -268,18 +266,19 @@ export default function Index(): JSX.Element {
             <ClockifyApiKeyButton size="sm" />
           </Col>
           <Col xs="auto">
-            <ClockifyWorkspaceSelect
+            <ClockifyEntitySelect
               size="sm"
-              value={workspace}
-              onChange={onWorkspaceChange}
+              entities={workspaces}
+              value={selectedWorkspace}
+              onChange={selectWorkspace}
             />
           </Col>
           <Col xs="auto">
-            <ClockifyClientSelect
+            <ClockifyEntitySelect
               size="sm"
-              workspaceId={workspace?.id}
-              value={client}
-              onChange={setClient}
+              entities={clients}
+              value={selectedClient}
+              onChange={selectClient}
             />
           </Col>
           <Col xs="auto">
@@ -287,8 +286,8 @@ export default function Index(): JSX.Element {
               size="sm"
               startDate={form.values.periodStart}
               endDate={form.values.periodEnd}
-              workspaceId={workspace?.id}
-              clientId={client?.id}
+              workspaceId={selectedWorkspace?.id}
+              clientId={selectedClient?.id}
               lineItems={form.values.lineItems}
               onChange={(li) => form.set('lineItems', li ?? [])}
             />
