@@ -12,19 +12,17 @@ export function buildRelUrl(
   path: string,
   query?: Record<string, unknown>,
 ): string {
-  return `${path}?${buildSearchParams(query).toString()}`;
+  return `${path}${query ? '?' : ''}${buildSearchParams(query).toString()}`;
 }
 
 function buildSearchParams(
   query: Record<string, unknown> = {},
   searchParams: URLSearchParams = new URLSearchParams(),
 ): URLSearchParams {
-  return Object.entries(query)
+  Object.entries(query)
     .flatMap<[string, unknown]>(([k, v]) =>
       Array.isArray(v) ? v.map<[string, unknown]>((v) => [k, v]) : [[k, v]],
     )
-    .reduce((searchParams, [k, v]) => {
-      searchParams.append(k, String(v));
-      return searchParams;
-    }, searchParams);
+    .forEach(([k, v]) => searchParams.append(k, String(v)));
+  return searchParams;
 }

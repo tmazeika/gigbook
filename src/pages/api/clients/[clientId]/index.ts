@@ -19,6 +19,6 @@ function handler(user: User, clientId: string): NextApiHandler {
 export default withMethods(
   ['GET'],
   withUser((user) =>
-    withQuery('clientId', {}, (clientId) => handler(user, clientId)),
+    withQuery(['clientId'], ({ clientId }) => handler(user, clientId)),
   ),
 );

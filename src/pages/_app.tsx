@@ -1,4 +1,5 @@
 import 'bootstrap/dist/css/bootstrap.min.css';
+import { ApiError } from 'gigbook/models/apiError';
 import type { Session } from 'next-auth';
 import { Provider as AuthProvider } from 'next-auth/client';
 import type { AppProps as NextAppProps } from 'next/app';
@@ -20,7 +21,13 @@ export default function App({
     <SWRConfig
       value={{
         fetcher: (resource, init) =>
-          fetch(resource, init).then((res) => res.json()),
+          fetch(resource, init).then(async (res) => {
+            const body: unknown = await res.json();
+            if (!res.ok) {
+              throw body as ApiError;
+            }
+            return body;
+          }),
       }}
     >
       <AuthProvider session={pageProps.session}>

@@ -1,0 +1,100 @@
+.Page {
+  border: 1px solid #ddd;
+  box-shadow: 0 0 10px #00000022;
+
+  width: 8.5in;
+  min-height: 11in;
+  margin: 1em auto;
+}
+
+.FromSection {
+  padding: 0.5in 0.5in 2em;
+  display: flex;
+  justify-content: space-between;
+}
+
+.ToSection {
+  background-color: #eaf3fb;
+  padding: 2em 0.5in;
+  display: flex;
+  justify-content: space-between;
+}
+
+.ToSectionClient {
+  display: flex;
+  gap: 1em;
+}
+
+.ToSectionClientTitle {
+  color: #2e5666;
+}
+
+.FromSection h1 {
+  line-height: 1;
+  margin: 0 0 1rem;
+}
+
+.AddressLine {
+  margin: 0;
+}
+
+.Em {
+  font-style: italic;
+}
+
+.Strong {
+  font-weight: bold;
+}
+
+.Table {
+  border-collapse: collapse;
+}
+
+.Table td {
+  text-align: right;
+}
+
+.Table td:first-child {
+  color: #2e5666;
+  padding-right: 1em;
+}
+
+.LineItemsContainer {
+  margin: 2em 0.5in;
+}
+
+.PayeeDescription {
+  color: #2e5666;
+  margin-bottom: 1rem;
+}
+
+.LineItems {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.LineItems :is(th, td) {
+  padding: 0.5em;
+}
+
+.LineItems tr:nth-child(odd):not(.LineItemsTotalRow) td {
+  background-color: #eaf3fb;
+}
+
+.LineItems th[align='right'] {
+  text-align: right;
+}
+
+.LineItemsTotalRow td {
+  box-sizing: content-box;
+  border-top: 3px solid #eaf3fb;
+}
+
+.BalanceDue {
+  color: #2e5666;
+  margin-right: 1em;
+}
+
+.LineItemsTotal {
+  font-weight: bold;
+}

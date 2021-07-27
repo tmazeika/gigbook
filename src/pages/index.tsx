@@ -10,9 +10,8 @@ import SelectInput from 'gigbook/components/selectInput';
 import TextInput from 'gigbook/components/textInput';
 import useClockifyClients from 'gigbook/hooks/useClockifyClients';
 import useClockifyWorkspaces from 'gigbook/hooks/useClockifyWorkspaces';
-import useForm from 'gigbook/hooks/useForm';
+import useInvoiceForm from 'gigbook/hooks/useInvoiceForm';
 import useSelect from 'gigbook/hooks/useSelect';
-import { NumberInputValue } from 'gigbook/util/type';
 
 import { DateTime, Duration } from 'luxon';
 import Button from 'react-bootstrap/Button';
@@ -35,42 +34,19 @@ export interface LineItem {
   quantity: Duration;
 }
 
-export interface BankDetail {
-  key: string;
-  value: string;
-}
-
 const today = DateTime.now().startOf('day');
 const lastMonth = today
   .minus(Duration.fromObject({ months: 1 }))
   .startOf('month');
 
 export default function Index(): JSX.Element {
-  const form = useForm({
-    initialValues: {
-      id: '',
-      date: today,
-      periodStart: lastMonth,
-      periodEnd: lastMonth.endOf('month').startOf('day'),
-      myName: '',
-      myDescription: '',
-      myAddress: '',
-      clientName: '',
-      clientAddress: '',
-      clientCurrency: 'usd' as 'usd' | 'gbp',
-      lineItems: [] as LineItem[],
-      billingIncrement: NumberInputValue.fromNumber(6),
-      billingNet: NumberInputValue.fromNumber(30),
-      billingCurrency: 'usd' as 'usd' | 'gbp',
-      bank: [] as BankDetail[],
-    },
-  });
+  const form = useInvoiceForm();
   const periodDiff = numberFormatter.format(
     form.values.periodEnd.diff(form.values.periodStart, ['days', 'hours'])
       .days + 1,
   );
   const dueDate = form.values.date
-    .plus(Duration.fromObject({ days: form.values.billingNet.n ?? 0 }))
+    .plus(Duration.fromObject({ days: form.values.billingNetTerms.n ?? 0 }))
     .toLocaleString({ dateStyle: 'medium' });
   const billingIncrementOk = form.values.billingIncrement.n
     ? Number.isInteger((form.values.billingIncrement.n / 60) * 100)
@@ -89,8 +65,8 @@ export default function Index(): JSX.Element {
         <h3>Invoice</h3>
         <Row className="mb-3">
           <Col>
-            <FloatingLabel controlId="id-input" label="ID">
-              <TextInput controller={form.control('id')} />
+            <FloatingLabel controlId="reference-input" label="Reference">
+              <TextInput controller={form.control('reference')} />
             </FloatingLabel>
           </Col>
           <Col>
@@ -174,20 +150,20 @@ export default function Index(): JSX.Element {
         <h3>Payee</h3>
         <Row className="mb-3">
           <Col>
-            <FloatingLabel controlId="my-name" label="Name">
-              <TextInput controller={form.control('myName')} />
+            <FloatingLabel controlId="payee-name" label="Name">
+              <TextInput controller={form.control('payeeName')} />
             </FloatingLabel>
           </Col>
           <Col>
-            <FloatingLabel controlId="my-description" label="Description">
-              <TextInput controller={form.control('myDescription')} />
+            <FloatingLabel controlId="payee-description" label="Description">
+              <TextInput controller={form.control('payeeDescription')} />
             </FloatingLabel>
           </Col>
         </Row>
         <Row className="mb-3">
           <Col>
-            <FloatingLabel controlId="my-address" label="Address">
-              <TextInput controller={form.control('myAddress')} textArea />
+            <FloatingLabel controlId="payee-address" label="Address">
+              <TextInput controller={form.control('payeeAddress')} textArea />
             </FloatingLabel>
           </Col>
         </Row>
@@ -208,6 +184,7 @@ export default function Index(): JSX.Element {
                 options={{
                   usd: 'USD',
                   gbp: 'GBP',
+                  jpy: 'JPY',
                 }}
               />
             </FloatingLabel>
@@ -238,10 +215,10 @@ export default function Index(): JSX.Element {
             </Form.Group>
           </Col>
           <Col>
-            <Form.Group controlId="billing-net">
+            <Form.Group controlId="billing-net-terms">
               <Form.Label>Net Terms</Form.Label>
               <InputGroup>
-                <NumberInput controller={form.control('billingNet')} />
+                <NumberInput controller={form.control('billingNetTerms')} />
                 <InputGroup.Text>days</InputGroup.Text>
               </InputGroup>
               <Form.Text muted>Due by {dueDate}</Form.Text>
@@ -255,6 +232,7 @@ export default function Index(): JSX.Element {
                 options={{
                   gbp: 'GBP',
                   usd: 'USD',
+                  jpy: 'JPY',
                 }}
               />
             </Form.Group>

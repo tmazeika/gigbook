@@ -26,7 +26,7 @@ export interface Form<T> {
 export default function useForm<T>(options: {
   initialValues: T;
   onValidate?: (values: Readonly<T>, errors: FormErrors<T>) => void;
-  onSubmit?: (values: Readonly<T>) => Promise<void>;
+  onSubmit?: (values: Readonly<T>) => Promise<void> | void;
 }): Form<T> {
   const promises = usePromises();
   const [isSubmitting, setSubmitting] = useState(false);
@@ -62,13 +62,16 @@ export default function useForm<T>(options: {
         setErrors(errors);
         return;
       }
-      setSubmitting(true);
-      void promises
-        .run(options.onSubmit?.(values) ?? Promise.resolve())
-        .then(() => {
+      const submitPromise = options.onSubmit?.(values);
+      if (submitPromise) {
+        setSubmitting(true);
+        void promises.run(submitPromise).then(() => {
           setSubmitting(false);
-          this.reset();
+          // this.reset();
         });
+      } else {
+        // this.reset();
+      }
     },
     reset() {
       dispatch(() => options.initialValues);

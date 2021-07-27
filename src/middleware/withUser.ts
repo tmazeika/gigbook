@@ -13,6 +13,6 @@ export default function withUser(
         email: session.user?.email ?? undefined,
       })(req, res);
     }
-    res.status(400).end();
+    res.status(403).end();
   };
 }
