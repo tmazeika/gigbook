@@ -1,10 +1,19 @@
-.Page {
-  border: 1px solid #ddd;
-  box-shadow: 0 0 10px #00000022;
+@page {
+  margin: 0;
+}
 
+.Page {
   width: 8.5in;
   min-height: 11in;
-  margin: 1em auto;
+}
+
+@media screen {
+  .Page {
+    border: 1px solid #ddd;
+    box-shadow: 0 0 10px #00000022;
+
+    margin: 1em auto;
+  }
 }
 
 .FromSection {
@@ -59,6 +68,17 @@
   padding-right: 1em;
 }
 
+.Table2 {
+  border-collapse: collapse;
+}
+
+.Table2 td:first-child {
+  color: #2e5666;
+  text-align: right;
+  padding-right: 1em;
+  vertical-align: top;
+}
+
 .LineItemsContainer {
   margin: 2em 0.5in;
 }
@@ -97,4 +117,8 @@
 
 .LineItemsTotal {
   font-weight: bold;
+}
+
+.BankDetails {
+  margin: 0 0.5in 0.5in;
 }

@@ -1,6 +1,5 @@
 import useForm, { Form } from 'gigbook/hooks/useForm';
-import { toBody } from 'gigbook/models/invoice';
-import { LineItem } from 'gigbook/pages';
+import { InvoiceLineItem, toBody } from 'gigbook/models/invoice';
 import { NumberInputValue } from 'gigbook/util/type';
 import { DateTime, Duration } from 'luxon';
 
@@ -26,7 +25,7 @@ const initialValues = {
   billingIncrement: NumberInputValue.fromNumber(6),
   billingNetTerms: NumberInputValue.fromNumber(30),
   billingCurrency: 'usd' as Currency,
-  lineItems: [] as LineItem[],
+  lineItems: [] as InvoiceLineItem[],
 };
 
 export default function useInvoiceForm(): Form<typeof initialValues> {
@@ -59,7 +58,7 @@ export default function useInvoiceForm(): Form<typeof initialValues> {
           project: li.project,
           task: li.task,
           rate: li.rate,
-          duration: li.quantity,
+          duration: li.duration,
         })),
       });
       const res = await fetch('/api/invoices', {

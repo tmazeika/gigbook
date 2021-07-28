@@ -1,32 +1,26 @@
 import cn from 'classnames';
-import LineItems from 'gigbook/components/lineItems';
-import useExchangeRate from 'gigbook/hooks/useExchangeRate';
-import { BodyInvoice, fromBody } from 'gigbook/models/invoice';
-import { Duration } from 'luxon';
+import useFormattedLineItems from 'gigbook/hooks/useFormattedLineItems';
+import useInvoice from 'gigbook/hooks/useInvoice';
+import { DateTime } from 'luxon';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import React from 'react';
-import useSWR from 'swr';
 import styles from './invoice.module.css';
 
 export default function Invoice(): JSX.Element {
   const router = useRouter();
-  const { invoiceId } = router.query;
-  const { data: bodyInvoice } = useSWR<BodyInvoice>(
-    typeof invoiceId === 'string'
-      ? `/api/invoices/${encodeURIComponent(invoiceId)}`
-      : null,
-  );
-  const invoice = fromBody(bodyInvoice);
-  const dueDate = invoice?.date.plus(
-    Duration.fromObject({ days: invoice.billing.netTerms }),
-  );
-  const exchangeRate = useExchangeRate(
+  const invoiceIdQuery = router.query.invoiceId;
+  const invoiceId =
+    typeof invoiceIdQuery === 'string' ? invoiceIdQuery : undefined;
+  const invoice = useInvoice(invoiceId);
+  const lineItems = useFormattedLineItems(
+    invoice?.lineItems,
     invoice?.billing.currency,
-    invoice?.client.currency,
+    invoice?.billing.increment,
+    invoice?.exchangeRate,
   );
 
-  return !invoice || !dueDate ? (
+  return !invoice || !lineItems ? (
     <p>Loading...</p>
   ) : (
     <div className={styles.Page}>
@@ -77,11 +71,11 @@ export default function Invoice(): JSX.Element {
               </tr>
               <tr>
                 <td>Invoice Date</td>
-                <td>{invoice.date.toLocaleString({ dateStyle: 'medium' })}</td>
+                <td>{invoice.date.toLocaleString(DateTime.DATE_MED)}</td>
               </tr>
               <tr>
                 <td>Due</td>
-                <td>{dueDate.toLocaleString({ dateStyle: 'medium' })}</td>
+                <td>{invoice.due.toLocaleString(DateTime.DATE_MED)}</td>
               </tr>
             </tbody>
           </table>
@@ -91,47 +85,74 @@ export default function Invoice(): JSX.Element {
         <h3 className={styles.PayeeDescription}>{invoice.payee.description}</h3>
         <table className={styles.LineItems}>
           <thead>
-            <th>Project</th>
-            <th>Task</th>
-            <th align="right">Rate</th>
-            <th align="right">Hours</th>
-            <th align="right">Total</th>
+            <tr>
+              <th>Project</th>
+              <th>Task</th>
+              <th align="right">Rate</th>
+              <th align="right">Hours</th>
+              <th align="right">Total</th>
+            </tr>
           </thead>
           <tbody>
-            <LineItems
-              lineItems={invoice.lineItems}
-              currency={invoice.billing.currency}
-              increment={invoice.billing.increment}
-              rowFactory={(project, task, rate, hours, total, i) => (
-                <tr key={i}>
-                  <td>{project}</td>
-                  <td>{task}</td>
-                  <td align="right">{rate}</td>
-                  <td align="right">{hours}</td>
-                  <td align="right">{total}</td>
-                </tr>
-              )}
-            >
-              {(rows, total) => (
-                <>
-                  {rows}
-                  <tr className={styles.LineItemsTotalRow}>
-                    <td colSpan={5} align="right">
-                      <span className={styles.BalanceDue}>Balance Due</span>
-                      <span className={styles.LineItemsTotal}>{total}</span>
-                    </td>
-                  </tr>
-                </>
-              )}
-            </LineItems>
+            {lineItems?.all.map((li, i) => (
+              <tr key={i}>
+                <td>{li.project}</td>
+                <td>{li.task}</td>
+                <td align="right">{li.rate}</td>
+                <td align="right">{li.hours}</td>
+                <td align="right">{li.total}</td>
+              </tr>
+            ))}
+            <tr className={styles.LineItemsTotalRow}>
+              <td colSpan={5} align="right">
+                <span className={styles.BalanceDue}>Balance Due</span>
+                <span className={styles.LineItemsTotal}>
+                  {lineItems?.total}
+                </span>
+              </td>
+            </tr>
           </tbody>
         </table>
       </div>
       <div className={styles.BankDetails}>
-        {new Intl.NumberFormat(undefined, {
-          style: 'currency',
-          currency: invoice.client.currency,
-        }).format(100)}
+        <p>
+          Please pay <strong>{lineItems.exchangedTotal}</strong> by{' '}
+          <strong>{invoice.due.toLocaleString(DateTime.DATE_FULL)}</strong> to:
+        </p>
+        <table className={styles.Table2}>
+          <tbody>
+            <tr>
+              <td>Account Holder</td>
+              <td>Someone LLC</td>
+            </tr>
+            <tr>
+              <td>Sort Code</td>
+              <td>11-11-11</td>
+            </tr>
+            <tr>
+              <td>Account #</td>
+              <td>12345678</td>
+            </tr>
+            <tr>
+              <td>IBAN</td>
+              <td>AAAA BBBB CCCC DDDD EEEE FF</td>
+            </tr>
+            <tr>
+              <td>Address</td>
+              <td>
+                TransferWise
+                <br />
+                56 Shoreditch High Street
+                <br />
+                London
+                <br />
+                E1 6JJ
+                <br />
+                United Kingdom
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
   );

@@ -73,7 +73,7 @@ export interface ClockifyInvoice {
         };
         task: string;
         rate: Fraction;
-        quantity: Duration;
+        duration: Duration;
       }[];
     };
   };
@@ -186,7 +186,7 @@ export default class Clockify {
           i.rate.equals(rate),
       );
       if (lineItem) {
-        lineItem.quantity = lineItem.quantity.plus(duration);
+        lineItem.duration = lineItem.duration.plus(duration);
       } else {
         client.lineItems.push({
           project: {
@@ -195,7 +195,7 @@ export default class Clockify {
           },
           task: timeEntry.description,
           rate,
-          quantity: duration,
+          duration,
         });
       }
     });

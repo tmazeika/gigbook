@@ -72,7 +72,7 @@ export default function Index(): JSX.Element {
           <Col>
             <Form.Group controlId="date">
               <FloatingLabel label="Date">
-                <DateInput controller={form.control('date')} />
+                <DateInput max={today} controller={form.control('date')} />
               </FloatingLabel>
               <Form.Text>
                 <ButtonGroup size="sm">

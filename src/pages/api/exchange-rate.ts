@@ -10,13 +10,14 @@ interface WiseRate {
 export default withMethods(
   ['GET'],
   withQuery(
-    ['from', 'to'],
-    ({ from: source, to: target }) =>
+    ['from', 'to', 'date'],
+    ({ from: source, to: target, date: time }) =>
       async (req, res: NextApiResponse<WiseRate>) => {
         const wiseRes = await fetch(
           buildUrl('https://api.transferwise.com', '/v1/rates', {
             source,
             target,
+            time,
           }),
           {
             headers: {

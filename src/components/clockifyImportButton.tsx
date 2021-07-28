@@ -1,5 +1,5 @@
 import useClockify from 'gigbook/hooks/useClockify';
-import { LineItem } from 'gigbook/pages';
+import { InvoiceLineItem } from 'gigbook/models/invoice';
 import { DateTime } from 'luxon';
 import { useState } from 'react';
 import Button from 'react-bootstrap/Button';
@@ -11,8 +11,8 @@ export interface ClockifyImportButtonProps {
   endDate: DateTime;
   workspaceId?: string;
   clientId?: string;
-  lineItems?: LineItem[];
-  onChange?: (lineItems?: LineItem[]) => void;
+  lineItems?: InvoiceLineItem[];
+  onChange?: (lineItems?: InvoiceLineItem[]) => void;
 }
 
 export default function ClockifyImportButton(
@@ -39,12 +39,11 @@ export default function ClockifyImportButton(
             props.endDate,
           );
           const lineItems = invoice.clients[props.clientId]?.lineItems?.map(
-            (li): LineItem => ({
-              id: String(Math.random()),
+            (li): InvoiceLineItem => ({
               project: li.project.name,
               task: li.task,
               rate: li.rate,
-              quantity: li.quantity,
+              duration: li.duration,
             }),
           );
           props.onChange?.(lineItems);

@@ -1,55 +1,23 @@
-import Fraction from 'fraction.js';
-import { Duration } from 'luxon';
-import { useMemo } from 'react';
+import useFormattedLineItems from 'gigbook/hooks/useFormattedLineItems';
+import { InvoiceLineItem } from 'gigbook/models/invoice';
 import Table from 'react-bootstrap/Table';
 
-const hoursFractionDigits = 2;
-
-const hoursFormatter = new Intl.NumberFormat(undefined, {
-  maximumFractionDigits: hoursFractionDigits,
-});
-
-export interface LineItem {
-  id: string;
-  project: string;
-  task: string;
-  rate: Fraction;
-  quantity: Duration;
-}
-
 export interface LineItemsTableProps {
-  lineItems: LineItem[];
+  lineItems: InvoiceLineItem[];
   currency: string;
   increment: number;
-}
-
-class CurrencyFormatter extends Intl.NumberFormat {
-  constructor(currency: string) {
-    super(undefined, {
-      style: 'currency',
-      currency,
-    });
-  }
-
-  get fractionDigits(): number {
-    return this.resolvedOptions().maximumFractionDigits;
-  }
+  exchangeRate?: number;
 }
 
 export default function LineItemsTable(
   props: LineItemsTableProps,
 ): JSX.Element {
-  const currencyFormatter = useMemo(
-    () => new CurrencyFormatter(props.currency),
-    [props.currency],
+  const formattedLineItems = useFormattedLineItems(
+    props.lineItems,
+    props.currency,
+    props.increment,
+    props.exchangeRate ?? 1,
   );
-  const currencyFractionDigits = currencyFormatter.fractionDigits;
-  const total = props.lineItems.reduce(
-    (sum, li) =>
-      sum.add(process(li, props.increment, currencyFractionDigits).total),
-    new Fraction(0),
-  );
-  const totalStr = currencyFormatter.format(total.valueOf());
 
   return (
     <Table striped bordered>
@@ -63,89 +31,23 @@ export default function LineItemsTable(
         </tr>
       </thead>
       <tbody>
-        {props.lineItems.map((li) => (
-          <Row
-            key={li.id}
-            lineItem={li}
-            currencyFormatter={currencyFormatter}
-            increment={props.increment}
-          />
-        ))}
+        {formattedLineItems?.all &&
+          formattedLineItems.all.map((li, i) => (
+            <tr key={i}>
+              <td>{li.project}</td>
+              <td>{li.task}</td>
+              <td align="right">{li.rate}</td>
+              <td align="right">{li.hours}</td>
+              <td align="right">{li.total}</td>
+            </tr>
+          ))}
         <tr>
           <td colSpan={4} />
           <td align="right">
-            <strong>{totalStr}</strong>
+            <strong>{formattedLineItems?.total}</strong>
           </td>
         </tr>
       </tbody>
     </Table>
   );
-}
-
-interface RowProps {
-  lineItem: LineItem;
-  currencyFormatter: CurrencyFormatter;
-  increment: number;
-}
-
-function Row(props: RowProps): JSX.Element {
-  const { currencyFormatter } = props;
-  const { rate, hours, total } = process(
-    props.lineItem,
-    props.increment,
-    currencyFormatter.fractionDigits,
-  );
-
-  const rateStr = currencyFormatter.format(rate.valueOf());
-  const hoursStr = hoursFormatter.format(hours.valueOf());
-  const totalStr = currencyFormatter.format(total.valueOf());
-
-  return (
-    <tr>
-      <td>{props.lineItem.project}</td>
-      <td>{props.lineItem.task}</td>
-      <td align="right">{rateStr}</td>
-      <td align="right">{hoursStr}</td>
-      <td align="right">{totalStr}</td>
-    </tr>
-  );
-}
-
-interface ProcessResult {
-  rate: Fraction;
-  hours: Fraction;
-  total: Fraction;
-}
-
-function process(
-  li: LineItem,
-  increment: number,
-  currencyFractionDigits: number,
-): ProcessResult {
-  const rate = li.rate.round(currencyFractionDigits);
-  const hours = roundDurationToIncrement(li.quantity, increment)
-    .div(60)
-    .round(hoursFractionDigits);
-  return {
-    rate,
-    hours,
-    total: rate.mul(hours).round(currencyFractionDigits),
-  };
-}
-
-function roundDurationToIncrement(
-  duration: Duration,
-  increment: number,
-): Fraction {
-  const minutes = durationToMinutes(duration);
-  return increment === 0
-    ? minutes
-    : minutes.div(increment).ceil(0).mul(increment);
-}
-
-function durationToMinutes(duration: Duration): Fraction {
-  const { years, milliseconds } = duration
-    .shiftTo('years', 'milliseconds')
-    .toObject();
-  return new Fraction(years ?? 0).mul(525_600).add(milliseconds ?? 0, 60_000);
 }
