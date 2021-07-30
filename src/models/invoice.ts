@@ -1,6 +1,10 @@
 import * as db from '@prisma/client';
+import { Decimal } from '@prisma/client/runtime/index-browser';
 import Fraction from 'fraction.js';
+import { CurrencyFormatter } from 'gigbook/hooks/useCurrencyFormatter';
+import { HoursFormatter } from 'gigbook/hooks/useHoursFormatter';
 import {
+  and,
   GetCheckedSchema,
   isArray,
   isDateTimeString,
@@ -11,7 +15,10 @@ import {
 } from 'gigbook/util/validation';
 import { DateTime, Duration } from 'luxon';
 
+export const exchangeRateFractionDigits = 6;
+
 export interface InvoiceLineItem {
+  id?: string;
   project: string;
   task: string;
   rate: Fraction;
@@ -19,6 +26,7 @@ export interface InvoiceLineItem {
 }
 
 export interface Invoice {
+  id?: string;
   reference: string;
   date: DateTime;
   period: {
@@ -39,11 +47,13 @@ export interface Invoice {
     increment: number;
     netTerms: number;
     currency: string;
+    exchangeRate: Fraction;
   };
   lineItems: InvoiceLineItem[];
 }
 
 const checkBodySchema = isObject({
+  id: isString({ optional: true }),
   reference: isString({ nonempty: true }),
   date: isDateTimeString(),
   period: isObject({
@@ -64,9 +74,14 @@ const checkBodySchema = isObject({
     increment: isNumber({ integer: true, min: 0 }),
     netTerms: isNumber({ integer: true, min: 0 }),
     currency: isString({ length: 3 }),
+    exchangeRate: and(
+      isString({ nonempty: true }),
+      (v) => !Number.isNaN(Number(v)),
+    ),
   }),
   lineItems: isArray(
     isObject({
+      id: isString({ optional: true }),
       project: isString({ nonempty: true }),
       task: isString({ nonempty: true }),
       rateN: isNumber({ integer: true, min: 0 }),
@@ -80,6 +95,7 @@ export type BodyInvoice = GetCheckedSchema<typeof checkBodySchema>;
 
 export function toBody(invoice: Invoice): BodyInvoice {
   return {
+    id: invoice.id,
     reference: invoice.reference,
     date: invoice.date.toISO(),
     period: {
@@ -100,8 +116,12 @@ export function toBody(invoice: Invoice): BodyInvoice {
       increment: invoice.billing.increment,
       netTerms: invoice.billing.netTerms,
       currency: invoice.billing.currency,
+      exchangeRate: invoice.billing.exchangeRate
+        .round(exchangeRateFractionDigits)
+        .toString(),
     },
     lineItems: invoice.lineItems.map((li) => ({
+      id: li.id,
       project: li.project,
       task: li.task,
       rateN: li.rate.s * li.rate.n,
@@ -116,6 +136,7 @@ export function fromBody(body: unknown): Invoice | undefined {
     return undefined;
   }
   return {
+    id: body.id,
     reference: body.reference,
     date: DateTime.fromISO(body.date),
     period: {
@@ -136,8 +157,10 @@ export function fromBody(body: unknown): Invoice | undefined {
       increment: body.billing.increment,
       netTerms: body.billing.netTerms,
       currency: body.billing.currency,
+      exchangeRate: new Fraction(body.billing.exchangeRate),
     },
     lineItems: body.lineItems.map((li) => ({
+      id: li.id,
       project: li.project,
       task: li.task,
       rate: new Fraction(li.rateN, li.rateD),
@@ -167,6 +190,9 @@ export function toDb(
     billingIncrement: invoice.billing.increment,
     billingNetTerms: invoice.billing.netTerms,
     billingCurrency: invoice.billing.currency,
+    exchangeRate: invoice.billing.exchangeRate
+      .round(exchangeRateFractionDigits)
+      .toString(),
     lineItems: {
       createMany: {
         data: invoice.lineItems.map((li) => ({
@@ -185,6 +211,7 @@ export function fromDb(
   invoice: db.Invoice & { lineItems: db.InvoiceLineItem[] },
 ): Invoice {
   return {
+    id: String(invoice.id),
     reference: invoice.reference,
     date: DateTime.fromJSDate(invoice.date),
     period: {
@@ -205,8 +232,14 @@ export function fromDb(
       increment: invoice.billingIncrement,
       netTerms: invoice.billingNetTerms,
       currency: invoice.billingCurrency,
+      exchangeRate: new Fraction(
+        invoice.exchangeRate
+          .toDP(exchangeRateFractionDigits, Decimal.ROUND_HALF_CEIL)
+          .toString(),
+      ),
     },
     lineItems: invoice.lineItems.map((li) => ({
+      id: String(li.id),
       project: li.project,
       task: li.task,
       rate: new Fraction(li.rateN, li.rateD),
@@ -214,3 +247,124 @@ export function fromDb(
     })),
   };
 }
+
+export interface InvoiceComputations {
+  dueDate: DateTime;
+  exchangedTotal: string;
+  rawExchangedTotal: Fraction;
+  lineItems: InvoiceLineItemAggregations;
+}
+
+export function computeInvoice(invoice: Invoice, locale?: string): InvoiceComputations {
+  const exchangedCurrencyFormatter = new CurrencyFormatter(
+    invoice.client.currency,
+    locale,
+  );
+  const lineItems = aggregateInvoiceLineItems(invoice.lineItems, {
+    currency: invoice.billing.currency,
+    increment: invoice.billing.increment,
+    locale,
+  });
+  const rawExchangedTotal = lineItems.rawTotal.mul(invoice.billing.exchangeRate);
+  const exchangedTotal = exchangedCurrencyFormatter.format(
+    rawExchangedTotal.valueOf(),
+  );
+
+  return {
+    dueDate: invoice.date.plus({ days: invoice.billing.netTerms }),
+    exchangedTotal,
+    rawExchangedTotal: rawExchangedTotal,
+    lineItems,
+  };
+}
+
+export interface InvoiceLineItemComputationOptions {
+  currency: string;
+  increment: number;
+  locale?: string;
+}
+
+export interface InvoiceLineItemAggregations {
+  all: InvoiceLineItemDisplay[];
+  total: string;
+  rawTotal: Fraction;
+}
+
+export function aggregateInvoiceLineItems(
+  lineItems: InvoiceLineItem[],
+  options: InvoiceLineItemComputationOptions,
+): InvoiceLineItemAggregations {
+  const computed = lineItems.map((li) => formatInvoiceLineItem(li, options));
+  const rawTotal = computed.reduce(
+    (sum, li) => sum.add(li.rawTotal),
+    new Fraction(0),
+  );
+  const total = new CurrencyFormatter(options.currency, options.locale).format(
+    rawTotal.valueOf(),
+  );
+  return {
+    all: computed,
+    total,
+    rawTotal,
+  };
+}
+
+export interface InvoiceLineItemDisplay {
+  id?: string;
+  project: string;
+  task: string;
+  rate: string;
+  hours: string;
+  total: string;
+  rawTotal: Fraction;
+}
+
+export function formatInvoiceLineItem(
+  lineItem: InvoiceLineItem,
+  options: InvoiceLineItemComputationOptions,
+): InvoiceLineItemDisplay {
+  const currencyFormatter = new CurrencyFormatter(
+    options.currency,
+    options.locale,
+  );
+  const hoursFormatter = new HoursFormatter(options.locale);
+  const rate = lineItem.rate.round(currencyFormatter.fractionDigits);
+  const hours = durationToMinutes(lineItem.duration)
+    .div(options.increment)
+    .ceil()
+    .mul(options.increment, 60)
+    .round(hoursFormatter.fractionDigits);
+  const total = rate.mul(hours).round(currencyFormatter.fractionDigits);
+
+  return {
+    id: lineItem.id,
+    project: lineItem.project,
+    task: lineItem.task,
+    rate: currencyFormatter.format(rate.valueOf()),
+    hours: hoursFormatter.format(hours.valueOf()),
+    total: currencyFormatter.format(total.valueOf()),
+    rawTotal: total,
+  };
+}
+
+function durationToMinutes(duration: Duration): Fraction {
+  const { minutes = 0, milliseconds = 0 } = duration
+    .shiftTo('minutes', 'milliseconds')
+    .toObject();
+  return new Fraction(minutes).add(milliseconds ? 1 : 0);
+}
+
+// export async function hydrate(invoice: Invoice): Promise<HydratedInvoice> {
+//   const res = await fetch(
+//     buildRelUrl('/api/exchange-rate', {
+//       from: invoice.billing.currency,
+//       to: invoice.client.currency,
+//       date: invoice.date.toISO(),
+//     }),
+//   );
+//   const { rate } = (await res.json()) as ExchangeRateResponse;
+//   return {
+//     ...compute(invoice),
+//     exchangeRate: rate,
+//   };
+// }

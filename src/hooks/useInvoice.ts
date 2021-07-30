@@ -1,31 +1,29 @@
-import useExchangeRate from 'gigbook/hooks/useExchangeRate';
-import { BodyInvoice, fromBody, Invoice } from 'gigbook/models/invoice';
-import { DateTime } from 'luxon';
+import useI18n from 'gigbook/hooks/useI18n';
+import {
+  BodyInvoice,
+  computeInvoice,
+  fromBody,
+  Invoice,
+  InvoiceComputations,
+} from 'gigbook/models/invoice';
 import useSWR from 'swr';
 
-export interface ProcessedInvoice extends Invoice {
-  due: DateTime;
-  exchangeRate: number;
-}
-
-export default function useInvoice(
-  invoiceId?: string,
-): ProcessedInvoice | undefined {
+export default function useInvoice(invoiceId?: string):
+  | {
+      invoice: Invoice;
+      computations: InvoiceComputations;
+    }
+  | undefined {
+  const { locale } = useI18n();
   const { data } = useSWR<BodyInvoice>(
     invoiceId ? `/api/invoices/${encodeURIComponent(invoiceId)}` : null,
   );
   const invoice = fromBody(data);
-  const exchangeRate = useExchangeRate(
-    invoice?.billing.currency,
-    invoice?.client.currency,
-    invoice?.date,
-  );
-  if (!invoice || !exchangeRate) {
-    return undefined;
+  if (invoice) {
+    return {
+      invoice,
+      computations: computeInvoice(invoice, locale),
+    };
   }
-  return {
-    ...invoice,
-    due: invoice.date.plus({ days: invoice.billing.netTerms }),
-    exchangeRate,
-  };
+  return undefined;
 }

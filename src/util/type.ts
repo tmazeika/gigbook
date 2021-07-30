@@ -46,3 +46,9 @@ export class NumberInputValue {
     return new NumberInputValue(String(number ?? ''), number);
   }
 }
+
+export type AllOrNone<T> =
+  | T
+  | {
+      [K in keyof T]?: undefined;
+    };

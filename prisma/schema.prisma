@@ -139,6 +139,7 @@ model Invoice {
   billingIncrement Int      @map("billing_increment")
   billingNetTerms  Int      @map("billing_net_terms")
   billingCurrency  String   @map("billing_currency")
+  exchangeRate     Decimal  @default(1) @map("exchange_rate")
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @default(now()) @map("updated_at")
 
