@@ -26,14 +26,6 @@ const numberFormatter = new Intl.NumberFormat(undefined, {
   maximumFractionDigits: 2,
 });
 
-export interface LineItem {
-  id: string;
-  project: string;
-  task: string;
-  rate: Fraction;
-  quantity: Duration;
-}
-
 const today = DateTime.now().startOf('day');
 const lastMonth = today
   .minus(Duration.fromObject({ months: 1 }))

@@ -1,6 +1,10 @@
+import Fraction from 'fraction.js';
+import useExchangeRate from 'gigbook/hooks/useExchangeRate';
 import useForm, { Form } from 'gigbook/hooks/useForm';
 import { InvoiceLineItem, toBody } from 'gigbook/models/invoice';
+import { ExchangeRateResponse } from 'gigbook/pages/api/exchange-rate';
 import { NumberInputValue } from 'gigbook/util/type';
+import { buildRelUrl } from 'gigbook/util/url';
 import { DateTime, Duration } from 'luxon';
 
 const today = DateTime.now().startOf('day');
@@ -32,6 +36,16 @@ export default function useInvoiceForm(): Form<typeof initialValues> {
   return useForm({
     initialValues,
     async onSubmit(values): Promise<void> {
+      const exchangeRateRes = await fetch(
+        buildRelUrl('/api/exchange-rate', {
+          from: values.billingCurrency,
+          to: values.clientCurrency,
+          date: today,
+        }),
+      );
+      const exchangeRate = new Fraction(
+        ((await exchangeRateRes.json()) as ExchangeRateResponse).rate,
+      );
       const body = toBody({
         reference: values.reference,
         date: values.date,
@@ -53,6 +67,7 @@ export default function useInvoiceForm(): Form<typeof initialValues> {
           increment: values.billingIncrement.n ?? 0,
           netTerms: values.billingNetTerms.n ?? 0,
           currency: values.billingCurrency,
+          exchangeRate,
         },
         lineItems: values.lineItems.map((li) => ({
           project: li.project,
