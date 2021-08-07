@@ -2,14 +2,18 @@ import useI18n from 'gigbook/hooks/useI18n';
 import {
   BodyInvoice,
   computeInvoice,
-  fromBody,
-  Invoice,
-  InvoiceComputations,
+  fromSafeBody,
+  InvoiceAndComputations,
 } from 'gigbook/models/invoice';
 import useSWR from 'swr';
 
-export default function useInvoiceList(): InvoiceComputations[] | undefined {
+export default function useInvoiceList(): InvoiceAndComputations[] | undefined {
   const { locale } = useI18n();
   const { data } = useSWR<BodyInvoice[]>('/api/invoices');
-  return data?.map((i) => computeInvoice(fromBody(i) as Invoice, locale));
+  return data
+    ?.map((i) => fromSafeBody(i))
+    .map((i) => ({
+      invoice: i,
+      computations: computeInvoice(i, locale),
+    }));
 }

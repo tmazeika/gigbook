@@ -8,9 +8,9 @@ import Container from 'react-bootstrap/Container';
 import Nav from 'react-bootstrap/Nav';
 import Navbar from 'react-bootstrap/Navbar';
 
-export default function Layout(
-  props: React.PropsWithChildren<unknown>,
-): JSX.Element {
+export default function Layout(props: {
+  children?: React.ReactNode;
+}): JSX.Element {
   const router = useRouter();
   const [session] = useSession();
 
@@ -25,8 +25,8 @@ export default function Layout(
             <Navbar.Brand>GigBook</Navbar.Brand>
           </Link>
           <Nav className="me-auto" activeKey={router.route}>
-            <Link href="/clients" passHref>
-              <Nav.Link>Clients</Nav.Link>
+            <Link href="/invoices" passHref>
+              <Nav.Link>Invoices</Nav.Link>
             </Link>
           </Nav>
           {session ? (

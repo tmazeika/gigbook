@@ -132,8 +132,16 @@ export function toBody(invoice: Invoice): BodyInvoice {
 }
 
 export function fromBody(body: unknown): Invoice | undefined {
-  if (!checkBodySchema(body)) {
+  try {
+    return fromSafeBody(body);
+  } catch (e) {
     return undefined;
+  }
+}
+
+export function fromSafeBody(body: unknown): Invoice {
+  if (!checkBodySchema(body)) {
+    throw new Error('Invalid invoice body');
   }
   return {
     id: body.id,
@@ -255,7 +263,15 @@ export interface InvoiceComputations {
   lineItems: InvoiceLineItemAggregations;
 }
 
-export function computeInvoice(invoice: Invoice, locale?: string): InvoiceComputations {
+export interface InvoiceAndComputations {
+  invoice: Invoice;
+  computations: InvoiceComputations;
+}
+
+export function computeInvoice(
+  invoice: Invoice,
+  locale?: string,
+): InvoiceComputations {
   const exchangedCurrencyFormatter = new CurrencyFormatter(
     invoice.client.currency,
     locale,
@@ -265,7 +281,9 @@ export function computeInvoice(invoice: Invoice, locale?: string): InvoiceComput
     increment: invoice.billing.increment,
     locale,
   });
-  const rawExchangedTotal = lineItems.rawTotal.mul(invoice.billing.exchangeRate);
+  const rawExchangedTotal = lineItems.rawTotal.mul(
+    invoice.billing.exchangeRate,
+  );
   const exchangedTotal = exchangedCurrencyFormatter.format(
     rawExchangedTotal.valueOf(),
   );
