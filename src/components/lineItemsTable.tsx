@@ -4,12 +4,21 @@ import {
   InvoiceLineItem,
 } from 'gigbook/models/invoice';
 import Table from 'react-bootstrap/Table';
+import styled from 'styled-components';
 
 export interface LineItemsTableProps {
   lineItems: InvoiceLineItem[];
   currency: string;
   increment: number;
 }
+
+const NumericTh = styled.th`
+  text-align: right;
+`;
+
+const NumericTd = styled.td`
+  text-align: right;
+`;
 
 export default function LineItemsTable(
   props: LineItemsTableProps,
@@ -21,14 +30,14 @@ export default function LineItemsTable(
     locale,
   });
   return (
-    <Table striped bordered>
+    <Table striped>
       <thead>
         <tr>
           <th>Project</th>
           <th>Task</th>
-          <th>Rate</th>
-          <th>Hours</th>
-          <th>Total</th>
+          <NumericTh>Rate</NumericTh>
+          <NumericTh>Hours</NumericTh>
+          <NumericTh>Total</NumericTh>
         </tr>
       </thead>
       <tbody>
@@ -36,16 +45,16 @@ export default function LineItemsTable(
           <tr key={li.id}>
             <td>{li.project}</td>
             <td>{li.task}</td>
-            <td align="right">{li.rate}</td>
-            <td align="right">{li.hours}</td>
-            <td align="right">{li.total}</td>
+            <NumericTd>{li.rate}</NumericTd>
+            <NumericTd>{li.hours}</NumericTd>
+            <NumericTd>{li.total}</NumericTd>
           </tr>
         ))}
         <tr>
           <td colSpan={4} />
-          <td align="right">
+          <NumericTd>
             <strong>{lineItems.total}</strong>
-          </td>
+          </NumericTd>
         </tr>
       </tbody>
     </Table>

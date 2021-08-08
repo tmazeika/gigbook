@@ -35,6 +35,7 @@ async function execute(
     await fn();
     return ok;
   } catch (e) {
+    console.error(e);
     return isClientError(e) ? 400 : 500;
   }
 }

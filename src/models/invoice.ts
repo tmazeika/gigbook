@@ -179,12 +179,8 @@ export function fromSafeBody(body: unknown): Invoice {
 
 export function toDb(
   invoice: Invoice,
-  userEmail: string,
-): db.Prisma.InvoiceCreateInput {
+): db.Prisma.InvoiceCreateWithoutUserInput {
   return {
-    user: {
-      connect: { email: userEmail },
-    },
     reference: invoice.reference,
     date: invoice.date.toISO(),
     periodStart: invoice.period.start.toISO(),
@@ -347,11 +343,12 @@ export function formatInvoiceLineItem(
   );
   const hoursFormatter = new HoursFormatter(options.locale);
   const rate = lineItem.rate.round(currencyFormatter.fractionDigits);
-  const hours = durationToMinutes(lineItem.duration)
-    .div(options.increment)
-    .ceil()
-    .mul(options.increment, 60)
-    .round(hoursFormatter.fractionDigits);
+  const minutes = durationToMinutes(lineItem.duration);
+  const hours = (
+    options.increment === 0
+      ? minutes.div(60)
+      : minutes.div(options.increment).ceil().mul(options.increment, 60)
+  ).round(hoursFormatter.fractionDigits);
   const total = rate.mul(hours).round(currencyFormatter.fractionDigits);
 
   return {
@@ -371,18 +368,3 @@ function durationToMinutes(duration: Duration): Fraction {
     .toObject();
   return new Fraction(minutes).add(milliseconds ? 1 : 0);
 }
-
-// export async function hydrate(invoice: Invoice): Promise<HydratedInvoice> {
-//   const res = await fetch(
-//     buildRelUrl('/api/exchange-rate', {
-//       from: invoice.billing.currency,
-//       to: invoice.client.currency,
-//       date: invoice.date.toISO(),
-//     }),
-//   );
-//   const { rate } = (await res.json()) as ExchangeRateResponse;
-//   return {
-//     ...compute(invoice),
-//     exchangeRate: rate,
-//   };
-// }

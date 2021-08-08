@@ -40,6 +40,7 @@ export default function ClockifyImportButton(
           );
           const lineItems = invoice.clients[props.clientId]?.lineItems?.map(
             (li): InvoiceLineItem => ({
+              id: li.id,
               project: li.project.name,
               task: li.task,
               rate: li.rate,

@@ -27,9 +27,43 @@ export default withMethods(
       if (!invoice) {
         return res.status(400).end();
       }
+      const user = await db.user.findFirst({
+        select: {
+          id: true,
+        },
+        where: {
+          email: userEmail,
+        },
+      });
+      if (user === null) {
+        return res.status(403).end();
+      }
       const code = await createEntity(() =>
-        db.invoice.create({
-          data: toDb(invoice, userEmail),
+        db.user.update({
+          where: {
+            email: userEmail,
+          },
+          data: {
+            invoices: {
+              create: toDb(invoice),
+            },
+            clients: {
+              upsert: {
+                where: {
+                  userId_name: {
+                    userId: user.id,
+                    name: invoice.client.name,
+                  },
+                },
+                update: {},
+                create: {
+                  name: invoice.client.name,
+                  currency: invoice.client.currency,
+                  address: invoice.client.address,
+                },
+              },
+            },
+          },
         }),
       );
       res.status(code).end();

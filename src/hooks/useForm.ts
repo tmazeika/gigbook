@@ -1,10 +1,10 @@
 import usePromises from 'gigbook/hooks/usePromises';
-import { FormEvent, useReducer, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useReducer, useState } from 'react';
 
 export interface FormValueController<T> {
   readonly value: Readonly<T>;
 
-  set(value: Readonly<T>): void;
+  set(value: T): void;
 }
 
 export type FormErrors<T> = Partial<Record<keyof T, string>>;
@@ -14,13 +14,15 @@ export interface Form<T> {
   readonly errors: Readonly<FormErrors<T>>;
   readonly isSubmitting: boolean;
 
-  set<K extends keyof T>(key: K, value: T[K]): void;
+  set<K extends keyof T>(this: void, key: K, value: T[K]): void;
 
-  control<K extends keyof T>(key: K): FormValueController<T[K]>;
+  prefill(this: void, data: Partial<T>): void;
 
-  onSubmit(e: FormEvent<HTMLFormElement>): void;
+  control<K extends keyof T>(this: void, key: K): FormValueController<T[K]>;
 
-  reset(): void;
+  onSubmit(this: void, e: FormEvent<HTMLFormElement>): void;
+
+  reset(this: void): void;
 }
 
 export default function useForm<T>(options: {
@@ -36,20 +38,37 @@ export default function useForm<T>(options: {
   );
   const [errors, setErrors] = useState<FormErrors<T>>({});
 
-  function set<K extends keyof T>(k: K, v: T[K]): void {
-    if (!Object.is(values[k], v)) {
-      dispatch((state) => ({
+  const set = useCallback(<K extends keyof T>(k: K, v: T[K]) => {
+    dispatch((state) => {
+      if (Object.is(state[k], v)) {
+        return state;
+      }
+      return {
         ...state,
         [k]: v,
-      }));
-    }
-  }
+      };
+    });
+  }, []);
+  const prefill = useCallback(
+    (data: Partial<T>) =>
+      Object.entries(data).forEach(([k, v]) => {
+        const _k = k as keyof T;
+        set(_k, v as T[typeof _k]);
+      }),
+    [set],
+  );
+
+  useEffect(
+    () => dispatch(() => options.initialValues),
+    [options.initialValues],
+  );
 
   return {
     values,
     errors,
     isSubmitting,
     set,
+    prefill,
     control: <K extends keyof T>(k: K): FormValueController<T[K]> => ({
       value: values[k],
       set: (v: T[K]) => set(k, v),
@@ -65,12 +84,7 @@ export default function useForm<T>(options: {
       const submitPromise = options.onSubmit?.(values);
       if (submitPromise) {
         setSubmitting(true);
-        void promises.run(submitPromise).then(() => {
-          setSubmitting(false);
-          // this.reset();
-        });
-      } else {
-        // this.reset();
+        void promises.run(submitPromise).then(() => setSubmitting(false));
       }
     },
     reset() {

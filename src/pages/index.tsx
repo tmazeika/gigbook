@@ -1,4 +1,3 @@
-import Fraction from 'fraction.js';
 import ClockifyApiKeyButton from 'gigbook/components/clockifyApiKeyButton';
 import ClockifyEntitySelect from 'gigbook/components/clockifyEntitySelect';
 import ClockifyImportButton from 'gigbook/components/clockifyImportButton';
@@ -32,7 +31,8 @@ const lastMonth = today
   .startOf('month');
 
 export default function Index(): JSX.Element {
-  const form = useInvoiceForm();
+  const form = useInvoiceForm('newInvoiceForm');
+
   const periodDiff = numberFormatter.format(
     form.values.periodEnd.diff(form.values.periodStart, ['days', 'hours'])
       .days + 1,

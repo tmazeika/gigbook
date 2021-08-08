@@ -28,6 +28,7 @@ export interface ClockifyAPIUser {
 
 export interface ClockifyAPIReport {
   timeentries: {
+    _id: string;
     clientId: string;
     clientName: string;
     projectId: string;
@@ -67,6 +68,7 @@ export interface ClockifyInvoice {
     [id: string]: {
       name: string;
       lineItems: {
+        id: string;
         project: {
           id: string;
           name: string;
@@ -189,6 +191,7 @@ export default class Clockify {
         lineItem.duration = lineItem.duration.plus(duration);
       } else {
         client.lineItems.push({
+          id: timeEntry._id,
           project: {
             id: timeEntry.projectId,
             name: timeEntry.projectName,

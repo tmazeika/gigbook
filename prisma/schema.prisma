@@ -42,22 +42,26 @@ model Session {
 }
 
 model User {
-  id             Int       @id @default(autoincrement())
-  name           String?
-  clockifyApiKey String?   @map("clockify_api_key")
-  email          String?   @unique
-  emailVerified  DateTime? @map("email_verified")
-  image          String?
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @default(now()) @map("updated_at")
+  id               Int       @id @default(autoincrement())
+  name             String?
+  clockifyApiKey   String?   @map("clockify_api_key")
+  payeeName        String?   @map("payee_name")
+  payeeDescription String?   @map("payee_description")
+  payeeAddress     String?   @map("payee_address")
+  email            String?   @unique
+  emailVerified    DateTime? @map("email_verified")
+  image            String?
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @default(now()) @map("updated_at")
 
   accounts Account[]
   sessions Session[]
   invoices Invoice[]
-  //  clients          Client[]
+  clients  Client[]
   //  banks            Bank[]
   //  invoiceTemplates InvoiceTemplate[]
 
+  @@index([email])
   @@map("users")
 }
 
@@ -122,6 +126,22 @@ model VerificationRequest {
 //  @@index([userId])
 //  @@map("invoice_templates")
 //}
+
+model Client {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  name      String
+  address   String
+  currency  String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, name])
+  @@index([userId])
+  @@map("clients")
+}
 
 model Invoice {
   id               Int      @id @default(autoincrement())

@@ -1,11 +1,13 @@
 import Fraction from 'fraction.js';
-import useExchangeRate from 'gigbook/hooks/useExchangeRate';
 import useForm, { Form } from 'gigbook/hooks/useForm';
+import useLocalStorage from 'gigbook/hooks/useLocalStorage';
 import { InvoiceLineItem, toBody } from 'gigbook/models/invoice';
 import { ExchangeRateResponse } from 'gigbook/pages/api/exchange-rate';
+import { InvoicePrefillResponse } from 'gigbook/pages/api/invoices/prefill';
 import { NumberInputValue } from 'gigbook/util/type';
 import { buildRelUrl } from 'gigbook/util/url';
 import { DateTime, Duration } from 'luxon';
+import { useEffect } from 'react';
 
 const today = DateTime.now().startOf('day');
 
@@ -32,8 +34,34 @@ const initialValues = {
   lineItems: [] as InvoiceLineItem[],
 };
 
-export default function useInvoiceForm(): Form<typeof initialValues> {
-  return useForm({
+type Values = typeof initialValues;
+
+type StorableInvoice = {
+  reference: string;
+  date: string;
+  periodStart: string;
+  periodEnd: string;
+  payeeName: string;
+  payeeDescription: string;
+  payeeAddress: string;
+  clientName: string;
+  clientAddress: string;
+  clientCurrency: Currency;
+  billingIncrement: string;
+  billingNetTerms: string;
+  billingCurrency: Currency;
+  lineItems: {
+    id?: string;
+    project: string;
+    task: string;
+    rateN: number;
+    rateD: number;
+    duration: string;
+  }[];
+};
+
+export default function useInvoiceForm(saveKey: string): Form<Values> {
+  const form = useForm({
     initialValues,
     async onSubmit(values): Promise<void> {
       const exchangeRateRes = await fetch(
@@ -78,7 +106,6 @@ export default function useInvoiceForm(): Form<typeof initialValues> {
       });
       const res = await fetch('/api/invoices', {
         method: 'POST',
-        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -89,4 +116,79 @@ export default function useInvoiceForm(): Form<typeof initialValues> {
       }
     },
   });
+  const prefill = form.prefill;
+  const [storedValues, setStoredValues] = useLocalStorage(
+    saveKey,
+    initialValues,
+    fromStorable,
+    toStorable,
+  );
+
+  useEffect(() => {
+    if (storedValues !== null) {
+      prefill(storedValues);
+    } else {
+      const controller = new AbortController();
+      void fetch('/api/invoices/prefill', {
+        signal: controller.signal,
+      })
+        .then((res) => res.json() as InvoicePrefillResponse)
+        .then((data) =>
+          prefill({
+            ...data,
+            clientCurrency: data.clientCurrency as Currency,
+            billingIncrement: data.billingIncrement
+              ? NumberInputValue.fromNumber(data.billingIncrement)
+              : undefined,
+            billingNetTerms: data.billingNetTerms
+              ? NumberInputValue.fromNumber(data.billingNetTerms)
+              : undefined,
+            billingCurrency: data.billingCurrency as Currency,
+          }),
+        )
+        .catch(console.error);
+      return () => controller.abort();
+    }
+  }, [storedValues, prefill]);
+
+  useEffect(() => setStoredValues(form.values), [setStoredValues, form.values]);
+
+  return form;
+}
+
+function toStorable(form: Values): StorableInvoice {
+  return {
+    ...form,
+    date: form.date.toISO(),
+    periodStart: form.periodStart.toISO(),
+    periodEnd: form.periodEnd.toISO(),
+    billingIncrement: form.billingIncrement.text,
+    billingNetTerms: form.billingNetTerms.text,
+    lineItems: form.lineItems.map((li) => ({
+      id: li.id,
+      project: li.project,
+      task: li.task,
+      rateN: li.rate.s * li.rate.n,
+      rateD: li.rate.d,
+      duration: li.duration.shiftTo('hours', 'seconds').toISO(),
+    })),
+  };
+}
+
+function fromStorable(stored: StorableInvoice): Values {
+  return {
+    ...stored,
+    date: DateTime.fromISO(stored.date),
+    periodStart: DateTime.fromISO(stored.periodStart),
+    periodEnd: DateTime.fromISO(stored.periodEnd),
+    billingIncrement: NumberInputValue.fromText(stored.billingIncrement),
+    billingNetTerms: NumberInputValue.fromText(stored.billingNetTerms),
+    lineItems: stored.lineItems.map((li) => ({
+      id: li.id,
+      project: li.project,
+      task: li.task,
+      rate: new Fraction(li.rateN, li.rateD),
+      duration: Duration.fromISO(li.duration),
+    })),
+  };
 }
