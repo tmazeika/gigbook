@@ -1,69 +1,31 @@
 import db from 'gigbook/db';
+import withAuth from 'gigbook/middleware/withAuth';
 import withMethods from 'gigbook/middleware/withMethods';
-import withUser from 'gigbook/middleware/withUser';
-import { ApiError } from 'gigbook/models/apiError';
-import { User } from 'gigbook/models/user';
-import { NextApiHandler } from 'next';
+import { ApiHandler } from 'gigbook/models/apiResponse';
+import { Currency } from 'gigbook/models/currency';
+import {
+  InvoicePrefill,
+  invoicePrefillSelect,
+} from 'gigbook/models/invoicePrefill';
+import { sendError, sendJson } from 'gigbook/util/apiResponse';
 
-export interface InvoicePrefillResponse {
-  payeeName?: string;
-  payeeDescription?: string;
-  payeeAddress?: string;
-  clientName?: string;
-  clientAddress?: string;
-  clientCurrency?: string;
-  billingIncrement?: number;
-  billingNetTerms?: number;
-  billingCurrency?: string;
-}
+const GET: ApiHandler<InvoicePrefill> = withAuth((user) => async (req, res) => {
+  const dbUser = await db.user.findFirst({
+    select: invoicePrefillSelect,
+    where: { id: user.id },
+  });
+  if (dbUser === null) {
+    return sendError(res, 404, 'User not found');
+  }
+  const dbInvoice = dbUser.invoices[0];
+  return sendJson(res, {
+    ...dbInvoice,
+    payeeName: dbUser.payeeName ?? dbInvoice?.payeeName,
+    payeeDescription: dbUser.payeeDescription ?? dbInvoice?.payeeDescription,
+    payeeAddress: dbUser.payeeAddress ?? dbInvoice?.payeeAddress,
+    clientCurrency: dbInvoice?.clientCurrency as Currency,
+    billingCurrency: dbInvoice?.billingCurrency as Currency,
+  });
+});
 
-type Response = InvoicePrefillResponse | ApiError;
-
-function handle(authUser: User): NextApiHandler<Response> {
-  return async (req, res) => {
-    const user = await db.user.findFirst({
-      where: {
-        email: authUser.email,
-      },
-      select: {
-        payeeName: true,
-        payeeDescription: true,
-        payeeAddress: true,
-        invoices: {
-          select: {
-            payeeName: true,
-            payeeDescription: true,
-            payeeAddress: true,
-            clientName: true,
-            clientAddress: true,
-            clientCurrency: true,
-            billingIncrement: true,
-            billingNetTerms: true,
-            billingCurrency: true,
-          },
-          orderBy: {
-            createdAt: 'desc',
-          },
-          take: 1,
-        },
-      },
-    });
-    if (user === null) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-    const invoice = user.invoices[0];
-    res.status(200).json({
-      payeeName: user.payeeName ?? invoice?.payeeName,
-      payeeDescription: user.payeeDescription ?? invoice?.payeeDescription,
-      payeeAddress: user.payeeAddress ?? invoice?.payeeAddress,
-      clientName: invoice?.clientName,
-      clientAddress: invoice?.clientAddress,
-      clientCurrency: invoice?.clientCurrency,
-      billingIncrement: invoice?.billingIncrement,
-      billingNetTerms: invoice?.billingNetTerms,
-      billingCurrency: invoice?.billingCurrency,
-    });
-  };
-}
-
-export default withMethods(['GET'], withUser(handle));
+export default withMethods({ GET });

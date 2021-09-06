@@ -1,9 +1,16 @@
+export function joinPaths(...parts: string[]): string {
+  return `/${parts.map(encodeURIComponent).join('/')}`;
+}
+
+export function urlEnc(collection: string, resource: string): string {
+  return `${collection}/${encodeURIComponent(resource)}`;
+}
+
 export function buildUrl(
-  base: string,
   path: string,
   query?: Record<string, unknown>,
 ): string {
-  const url = new URL(path, base);
+  const url = new URL(path);
   buildSearchParams(query, url.searchParams);
   return url.toString();
 }

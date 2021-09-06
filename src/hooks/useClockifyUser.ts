@@ -1,17 +1,19 @@
 import { ClockifyUser } from 'gigbook/clockify/client';
-import useClockify from 'gigbook/hooks/useClockify';
+import useClockifyApiClient from 'gigbook/hooks/useClockifyApiClient';
+import useSignal from 'gigbook/hooks/useSignal';
 import { useEffect, useState } from 'react';
 
 export default function useClockifyUser(): ClockifyUser | undefined {
-  const clockify = useClockify();
+  const signal = useSignal();
+  const clockify = useClockifyApiClient();
   const [user, setUser] = useState<ClockifyUser>();
 
   useEffect(() => {
     if (clockify) {
-      clockify.getUser().then(setUser).catch(console.error);
+      clockify.getUser(signal).then(setUser).catch(console.error);
     }
     return () => setUser(undefined);
-  }, [clockify]);
+  }, [signal, clockify]);
 
   return user;
 }

@@ -1,25 +1,34 @@
 import useI18n from 'gigbook/hooks/useI18n';
 import {
-  BodyInvoice,
   computeInvoice,
-  fromBody,
+  Invoice,
   InvoiceAndComputations,
 } from 'gigbook/models/invoice';
+import { urlEnc } from 'gigbook/util/url';
 import useSWR from 'swr';
 
+interface Options {
+  fetch: boolean;
+}
+
+interface Hook {
+  invoice: InvoiceAndComputations | undefined;
+}
+
 export default function useInvoice(
-  invoiceId?: string,
-): InvoiceAndComputations | undefined {
+  id?: string,
+  options: Options = { fetch: true },
+): Hook {
   const { locale } = useI18n();
-  const { data } = useSWR<BodyInvoice>(
-    invoiceId ? `/api/invoices/${encodeURIComponent(invoiceId)}` : null,
+  const { data: invoice } = useSWR<Invoice>(
+    options.fetch && id ? urlEnc('/api/invoices', id) : null,
   );
-  const invoice = fromBody(data);
-  if (invoice) {
-    return {
-      invoice,
-      computations: computeInvoice(invoice, locale),
-    };
-  }
-  return undefined;
+  return {
+    invoice: invoice
+      ? {
+          invoice,
+          computations: computeInvoice(invoice, locale),
+        }
+      : undefined,
+  };
 }

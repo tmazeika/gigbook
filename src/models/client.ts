@@ -1,27 +1,29 @@
-export interface UnsavedClient {
-  userId?: number;
-  clockifyId: number;
-  address: unknown;
-  billingIncrement: number;
-  billingNetDays: number;
-  billingCurrency: string;
-  bankId?: number;
-}
+import { Prisma } from '@prisma/client';
+import { Currency, currencySchema } from 'gigbook/models/currency';
+import { GetTransformFromSchema, object, string } from 'gigbook/validation';
+import { nonemptyString } from 'gigbook/validation/ext';
 
-export interface Client extends UnsavedClient {
-  id: number;
-}
+export const clientSchema = object({
+  id: string().optional(),
+  name: nonemptyString(),
+  address: nonemptyString(),
+  currency: currencySchema,
+});
 
-export function isValidUnsavedClient(v: unknown): v is UnsavedClient {
-  return isUnsavedClient(v) && isValid(v);
-}
+export type Client = GetTransformFromSchema<typeof clientSchema>;
 
-// TODO: fix
+export const clientSelect = Prisma.validator<Prisma.ClientSelect>()({
+  id: true,
+  name: true,
+  address: true,
+  currency: true,
+});
 
-function isUnsavedClient(v: unknown): v is UnsavedClient {
-  return typeof (v as UnsavedClient)?.billingCurrency === 'string';
-}
+export type DbClient = Prisma.ClientGetPayload<{ select: typeof clientSelect }>;
 
-function isValid({ billingCurrency }: UnsavedClient): boolean {
-  return 1 <= billingCurrency.length && billingCurrency.length <= 255;
-}
+export const fromDb = (client: DbClient): Client => ({
+  id: client.id,
+  name: client.name,
+  currency: client.currency as Currency,
+  address: client.address,
+});

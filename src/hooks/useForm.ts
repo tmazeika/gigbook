@@ -1,5 +1,5 @@
 import usePromises from 'gigbook/hooks/usePromises';
-import { FormEvent, useCallback, useEffect, useReducer, useState } from 'react';
+import { SyntheticEvent, useCallback, useReducer, useState } from 'react';
 
 export interface FormValueController<T> {
   readonly value: Readonly<T>;
@@ -16,27 +16,31 @@ export interface Form<T> {
 
   set<K extends keyof T>(this: void, key: K, value: T[K]): void;
 
-  prefill(this: void, data: Partial<T>): void;
+  setMany(this: void, data: Partial<T>): void;
 
   control<K extends keyof T>(this: void, key: K): FormValueController<T[K]>;
 
-  onSubmit(this: void, e: FormEvent<HTMLFormElement>): void;
+  onSubmit(this: void, e?: SyntheticEvent): void;
 
   reset(this: void): void;
 }
 
-export default function useForm<T>(options: {
+export default function useForm<T>({
+  initialValues,
+  onValidate,
+  onSubmit,
+}: {
   initialValues: T;
   onValidate?: (values: Readonly<T>, errors: FormErrors<T>) => void;
   onSubmit?: (values: Readonly<T>) => Promise<void> | void;
 }): Form<T> {
   const promises = usePromises();
-  const [isSubmitting, setSubmitting] = useState(false);
   const [values, dispatch] = useReducer(
     (state: T, action: (state: T) => T) => action(state),
-    options.initialValues,
+    initialValues,
   );
   const [errors, setErrors] = useState<FormErrors<T>>({});
+  const [isSubmitting, setSubmitting] = useState(false);
 
   const set = useCallback(<K extends keyof T>(k: K, v: T[K]) => {
     dispatch((state) => {
@@ -48,48 +52,52 @@ export default function useForm<T>(options: {
         [k]: v,
       };
     });
+    setErrors((errors) => ({
+      ...errors,
+      [k]: undefined,
+    }));
   }, []);
-  const prefill = useCallback(
-    (data: Partial<T>) =>
-      Object.entries(data).forEach(([k, v]) => {
-        const _k = k as keyof T;
-        set(_k, v as T[typeof _k]);
-      }),
-    [set],
-  );
-
-  useEffect(
-    () => dispatch(() => options.initialValues),
-    [options.initialValues],
-  );
 
   return {
     values,
     errors,
     isSubmitting,
     set,
-    prefill,
-    control: <K extends keyof T>(k: K): FormValueController<T[K]> => ({
-      value: values[k],
-      set: (v: T[K]) => set(k, v),
-    }),
-    onSubmit(e: FormEvent<HTMLFormElement>) {
-      e.preventDefault();
-      const errors: FormErrors<T> = {};
-      options.onValidate?.(values, errors);
-      if (Object.values(errors).some((e) => e !== undefined)) {
-        setErrors(errors);
-        return;
-      }
-      const submitPromise = options.onSubmit?.(values);
-      if (submitPromise) {
-        setSubmitting(true);
-        void promises.run(submitPromise).then(() => setSubmitting(false));
-      }
-    },
-    reset() {
-      dispatch(() => options.initialValues);
+    setMany: useCallback(
+      (data: Partial<T>) =>
+        Object.entries(data).forEach(([k, v]) => {
+          const _k = k as keyof T;
+          set(_k, v as T[typeof _k]);
+        }),
+      [set],
+    ),
+    control: useCallback(
+      <K extends keyof T>(k: K): FormValueController<T[K]> => ({
+        value: values[k],
+        set: (v: T[K]) => set(k, v),
+      }),
+      [values, set],
+    ),
+    onSubmit: useCallback(
+      (e?: SyntheticEvent) => {
+        e?.preventDefault();
+        const errors: FormErrors<T> = {};
+        onValidate?.(values, errors);
+        if (Object.values(errors).some((e) => e !== undefined)) {
+          setErrors(errors);
+          return;
+        }
+        const submit = onSubmit?.(values);
+        if (submit) {
+          setSubmitting(true);
+          void promises.run(submit).then(() => setSubmitting(false));
+        }
+      },
+      [onValidate, onSubmit, values, promises],
+    ),
+    reset: useCallback(() => {
+      dispatch(() => initialValues);
       setErrors({});
-    },
+    }, [initialValues]),
   };
 }

@@ -1,31 +1,45 @@
+import { decode, encode } from 'gigbook/json';
+import { Serializable } from 'gigbook/util/serialization';
 import { useCallback, useState } from 'react';
 
-export type Storable =
-  | null
-  | string
-  | number
-  | boolean
-  | Storable[]
-  | { [K in string]: Storable };
-
-export default function useLocalStorage<T, U extends Storable>(
+export default function useLocalStorage<T extends Serializable>(
   key: string,
   initialValue: T,
-  fromStorable: (value: U) => T,
-  toStorable: (value: T) => U,
-): readonly [T | null, (value: T) => void] {
+): readonly [T, (value: T) => void];
+
+export default function useLocalStorage<T, U extends Serializable>(
+  key: string,
+  initialValue: T,
+  fromSerializable: (value: U) => T,
+  toSerializable: (value: T) => U,
+): readonly [T, (value: T) => void];
+
+export default function useLocalStorage<U extends Serializable, T = U>(
+  key: string,
+  initialValue: T,
+  fromSerializable?: (value: U) => T,
+  toSerializable?: (value: T) => U,
+): readonly [T, (value: T) => void] {
   const [value] = useState(() => {
     if (typeof window === 'undefined') {
-      return null;
+      return initialValue;
     }
     const v = window.localStorage.getItem(key);
-    return v === null ? null : fromStorable(JSON.parse(v));
+    if (v === null) {
+      return initialValue;
+    }
+    const parsed = decode(v);
+    return fromSerializable === undefined
+      ? (parsed as T)
+      : fromSerializable(parsed as U);
   });
   const setValue = useCallback(
     (value: T) => {
-      window.localStorage.setItem(key, JSON.stringify(toStorable(value)));
+      const serializable =
+        toSerializable === undefined ? value : toSerializable(value);
+      window.localStorage.setItem(key, encode(serializable));
     },
-    [key, toStorable],
+    [key, toSerializable],
   );
   return [value, setValue] as const;
 }

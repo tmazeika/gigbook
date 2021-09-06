@@ -1,37 +1,22 @@
 import db from 'gigbook/db';
+import withAuth from 'gigbook/middleware/withAuth';
 import withMethods from 'gigbook/middleware/withMethods';
-import withUser from 'gigbook/middleware/withUser';
-import { ApiError } from 'gigbook/models/apiError';
-import { fromDb, toBody } from 'gigbook/models/invoice';
-import { NextApiResponse } from 'next';
+import { ApiHandler } from 'gigbook/models/apiResponse';
+import { fromDb, Invoice, invoiceSelect } from 'gigbook/models/invoice';
+import { sendError, sendJson } from 'gigbook/util/apiResponse';
 
-type Response = NextApiResponse<ReturnType<typeof toBody> | ApiError>;
+const GET: ApiHandler<Invoice> = withAuth((user) => async (req, res) => {
+  const dbInvoice = await db.invoice.findFirst({
+    select: invoiceSelect,
+    where: {
+      id: String(req.query['invoiceId']),
+      userId: user.id,
+    },
+  });
+  if (dbInvoice === null) {
+    return sendError(res, 404, 'Invoice not found');
+  }
+  return sendJson(res, fromDb(dbInvoice));
+});
 
-export default withMethods(
-  ['GET'],
-  withUser((user) => async (req, res: Response) => {
-    const userEmail = user.email;
-    if (!userEmail) {
-      return res.status(403).json({ message: 'User email not found' });
-    }
-    const invoiceId = Number(req.query['invoiceId']);
-    if (!Number.isSafeInteger(invoiceId)) {
-      return res.status(400).json({ message: 'Invalid invoice ID' });
-    }
-    const invoice = await db.invoice.findFirst({
-      include: {
-        lineItems: true,
-      },
-      where: {
-        id: invoiceId,
-        user: {
-          email: userEmail,
-        },
-      },
-    });
-    if (!invoice) {
-      return res.status(404).json({ message: 'Invoice not found' });
-    }
-    return res.status(200).json(toBody(fromDb(invoice)));
-  }),
-);
+export default withMethods({ GET });

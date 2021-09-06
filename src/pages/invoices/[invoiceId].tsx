@@ -11,7 +11,7 @@ export default function Invoice(): JSX.Element {
   const invoiceIdQuery = router.query.invoiceId;
   const invoiceId =
     typeof invoiceIdQuery === 'string' ? invoiceIdQuery : undefined;
-  const computedInvoice = useInvoice(invoiceId);
+  const { invoice: computedInvoice } = useInvoice(invoiceId);
 
   if (!computedInvoice) {
     return <p>Loading...</p>;

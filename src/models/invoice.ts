@@ -1,256 +1,186 @@
 import * as db from '@prisma/client';
-import { Decimal } from '@prisma/client/runtime/index-browser';
 import Fraction from 'fraction.js';
 import { CurrencyFormatter } from 'gigbook/hooks/useCurrencyFormatter';
 import { HoursFormatter } from 'gigbook/hooks/useHoursFormatter';
+import { Currency, currencySchema } from 'gigbook/models/currency';
 import {
-  and,
-  GetCheckedSchema,
-  isArray,
-  isDateTimeString,
-  isDurationString,
-  isNumber,
-  isObject,
-  isString,
-} from 'gigbook/util/validation';
+  array,
+  GetTransformFromSchema,
+  number,
+  object,
+} from 'gigbook/validation';
+import {
+  dateTime,
+  duration,
+  fraction,
+  nonemptyString,
+} from 'gigbook/validation/ext';
 import { DateTime, Duration } from 'luxon';
 
-export const exchangeRateFractionDigits = 6;
-
-export interface InvoiceLineItem {
-  id?: string;
-  project: string;
-  task: string;
-  rate: Fraction;
-  duration: Duration;
-}
-
-export interface Invoice {
-  id?: string;
-  reference: string;
-  date: DateTime;
-  period: {
-    start: DateTime;
-    end: DateTime;
-  };
-  payee: {
-    name: string;
-    description: string;
-    address: string;
-  };
-  client: {
-    name: string;
-    address: string;
-    currency: string;
-  };
-  billing: {
-    increment: number;
-    netTerms: number;
-    currency: string;
-    exchangeRate: Fraction;
-  };
-  lineItems: InvoiceLineItem[];
-}
-
-const checkBodySchema = isObject({
-  id: isString({ optional: true }),
-  reference: isString({ nonempty: true }),
-  date: isDateTimeString(),
-  period: isObject({
-    start: isDateTimeString(),
-    end: isDateTimeString(),
-  }),
-  payee: isObject({
-    name: isString({ nonempty: true }),
-    description: isString({ nonempty: true }),
-    address: isString({ nonempty: true }),
-  }),
-  client: isObject({
-    name: isString({ nonempty: true }),
-    address: isString({ nonempty: true }),
-    currency: isString({ length: 3 }),
-  }),
-  billing: isObject({
-    increment: isNumber({ integer: true, min: 0 }),
-    netTerms: isNumber({ integer: true, min: 0 }),
-    currency: isString({ length: 3 }),
-    exchangeRate: and(
-      isString({ nonempty: true }),
-      (v) => !Number.isNaN(Number(v)),
-    ),
-  }),
-  lineItems: isArray(
-    isObject({
-      id: isString({ optional: true }),
-      project: isString({ nonempty: true }),
-      task: isString({ nonempty: true }),
-      rateN: isNumber({ integer: true, min: 0 }),
-      rateD: isNumber({ integer: true, min: 1 }),
-      duration: isDurationString(),
-    }),
-  ),
+export const invoiceLineItemSchema = object({
+  id: nonemptyString().optional(),
+  project: nonemptyString(),
+  task: nonemptyString(),
+  rate: fraction({ min: 0 }),
+  duration: duration({ min: Duration.fromObject({}) }),
 });
 
-export type BodyInvoice = GetCheckedSchema<typeof checkBodySchema>;
+export type InvoiceLineItem = GetTransformFromSchema<
+  typeof invoiceLineItemSchema
+>;
 
-export function toBody(invoice: Invoice): BodyInvoice {
-  return {
-    id: invoice.id,
-    reference: invoice.reference,
-    date: invoice.date.toISO(),
-    period: {
-      start: invoice.period.start.toISO(),
-      end: invoice.period.end.toISO(),
-    },
-    payee: {
-      name: invoice.payee.name,
-      description: invoice.payee.description,
-      address: invoice.payee.address,
-    },
-    client: {
-      name: invoice.client.name,
-      address: invoice.client.address,
-      currency: invoice.client.currency,
-    },
-    billing: {
-      increment: invoice.billing.increment,
-      netTerms: invoice.billing.netTerms,
-      currency: invoice.billing.currency,
-      exchangeRate: invoice.billing.exchangeRate
-        .round(exchangeRateFractionDigits)
-        .toString(),
-    },
-    lineItems: invoice.lineItems.map((li) => ({
-      id: li.id,
-      project: li.project,
-      task: li.task,
-      rateN: li.rate.s * li.rate.n,
-      rateD: li.rate.d,
-      duration: li.duration.shiftTo('hours', 'seconds').toISO(),
-    })),
-  };
-}
+export const invoiceSchema = object({
+  id: nonemptyString().optional(),
+  reference: nonemptyString(),
+  date: dateTime(),
+  period: object({
+    start: dateTime(),
+    end: dateTime(),
+  }),
+  payee: object({
+    name: nonemptyString(),
+    description: nonemptyString(),
+    address: nonemptyString(),
+  }),
+  client: object({
+    name: nonemptyString(),
+    address: nonemptyString(),
+    currency: currencySchema,
+  }),
+  billing: object({
+    increment: number({ integer: true, min: 0 }),
+    netTerms: number({ integer: true }),
+    currency: currencySchema,
+    exchangeRate: fraction(),
+  }),
+  lineItems: array(invoiceLineItemSchema),
+});
 
-export function fromBody(body: unknown): Invoice | undefined {
-  try {
-    return fromSafeBody(body);
-  } catch (e) {
-    return undefined;
-  }
-}
+export type Invoice = GetTransformFromSchema<typeof invoiceSchema>;
 
-export function fromSafeBody(body: unknown): Invoice {
-  if (!checkBodySchema(body)) {
-    throw new Error('Invalid invoice body');
-  }
-  return {
-    id: body.id,
-    reference: body.reference,
-    date: DateTime.fromISO(body.date),
-    period: {
-      start: DateTime.fromISO(body.period.start),
-      end: DateTime.fromISO(body.period.end),
-    },
-    payee: {
-      name: body.payee.name,
-      description: body.payee.description,
-      address: body.payee.address,
-    },
-    client: {
-      name: body.client.name,
-      address: body.client.address,
-      currency: body.client.currency,
-    },
-    billing: {
-      increment: body.billing.increment,
-      netTerms: body.billing.netTerms,
-      currency: body.billing.currency,
-      exchangeRate: new Fraction(body.billing.exchangeRate),
-    },
-    lineItems: body.lineItems.map((li) => ({
-      id: li.id,
-      project: li.project,
-      task: li.task,
-      rate: new Fraction(li.rateN, li.rateD),
-      duration: Duration.fromISO(li.duration),
-    })),
-  };
-}
-
-export function toDb(
-  invoice: Invoice,
-): db.Prisma.InvoiceCreateWithoutUserInput {
-  return {
-    reference: invoice.reference,
-    date: invoice.date.toISO(),
-    periodStart: invoice.period.start.toISO(),
-    periodEnd: invoice.period.end.toISO(),
-    payeeName: invoice.payee.name,
-    payeeDescription: invoice.payee.description,
-    payeeAddress: invoice.payee.address,
-    clientName: invoice.client.name,
-    clientAddress: invoice.client.address,
-    clientCurrency: invoice.client.currency,
-    billingIncrement: invoice.billing.increment,
-    billingNetTerms: invoice.billing.netTerms,
-    billingCurrency: invoice.billing.currency,
-    exchangeRate: invoice.billing.exchangeRate
-      .round(exchangeRateFractionDigits)
-      .toString(),
-    lineItems: {
-      createMany: {
-        data: invoice.lineItems.map((li) => ({
-          project: li.project,
-          task: li.task,
-          rateN: li.rate.s * li.rate.n,
-          rateD: li.rate.d,
-          duration: li.duration.shiftTo('hours', 'seconds').toISO(),
-        })),
+export function createInvoice(id: string, userId: string, invoice: Invoice) {
+  const exchangeRate = invoice.billing.exchangeRate;
+  return db.Prisma.validator<db.Prisma.UserUpdateInput>()({
+    invoices: {
+      create: {
+        id,
+        reference: invoice.reference,
+        date: invoice.date.toISO(),
+        periodStart: invoice.period.start.toISO(),
+        periodEnd: invoice.period.end.toISO(),
+        payeeName: invoice.payee.name,
+        payeeDescription: invoice.payee.description,
+        payeeAddress: invoice.payee.address,
+        clientName: invoice.client.name,
+        clientCurrency: invoice.client.currency,
+        clientAddress: invoice.client.address,
+        billingIncrement: invoice.billing.increment,
+        billingNetTerms: invoice.billing.netTerms,
+        billingCurrency: invoice.billing.currency,
+        exchangeRateN: exchangeRate.s * exchangeRate.n,
+        exchangeRateD: exchangeRate.d,
+        lineItems: {
+          createMany: {
+            data: invoice.lineItems.map((li) => ({
+              project: li.project,
+              task: li.task,
+              rateN: li.rate.s * li.rate.n,
+              rateD: li.rate.d,
+              duration: li.duration
+                .shiftTo('hours', 'minutes', 'seconds')
+                .toISO(),
+            })),
+          },
+        },
       },
     },
-  };
+    clients: {
+      upsert: {
+        where: {
+          userId_name: {
+            userId,
+            name: invoice.client.name,
+          },
+        },
+        update: {
+          currency: invoice.client.currency,
+          address: invoice.client.address,
+        },
+        create: {
+          name: invoice.client.name,
+          currency: invoice.client.currency,
+          address: invoice.client.address,
+        },
+      },
+    },
+  });
 }
 
-export function fromDb(
-  invoice: db.Invoice & { lineItems: db.InvoiceLineItem[] },
-): Invoice {
-  return {
-    id: String(invoice.id),
-    reference: invoice.reference,
-    date: DateTime.fromJSDate(invoice.date),
-    period: {
-      start: DateTime.fromJSDate(invoice.periodStart),
-      end: DateTime.fromJSDate(invoice.periodEnd),
+export const invoiceSelect = db.Prisma.validator<db.Prisma.InvoiceSelect>()({
+  id: true,
+  reference: true,
+  date: true,
+  periodStart: true,
+  periodEnd: true,
+  payeeName: true,
+  payeeDescription: true,
+  payeeAddress: true,
+  clientName: true,
+  clientCurrency: true,
+  clientAddress: true,
+  billingIncrement: true,
+  billingNetTerms: true,
+  billingCurrency: true,
+  exchangeRateN: true,
+  exchangeRateD: true,
+  lineItems: {
+    select: {
+      id: true,
+      project: true,
+      task: true,
+      rateN: true,
+      rateD: true,
+      duration: true,
     },
-    payee: {
-      name: invoice.payeeName,
-      address: invoice.payeeAddress,
-      description: invoice.payeeDescription,
-    },
-    client: {
-      name: invoice.clientName,
-      address: invoice.clientAddress,
-      currency: invoice.clientCurrency,
-    },
-    billing: {
-      increment: invoice.billingIncrement,
-      netTerms: invoice.billingNetTerms,
-      currency: invoice.billingCurrency,
-      exchangeRate: new Fraction(
-        invoice.exchangeRate
-          .toDP(exchangeRateFractionDigits, Decimal.ROUND_HALF_CEIL)
-          .toString(),
-      ),
-    },
-    lineItems: invoice.lineItems.map((li) => ({
-      id: String(li.id),
-      project: li.project,
-      task: li.task,
-      rate: new Fraction(li.rateN, li.rateD),
-      duration: Duration.fromISO(li.duration),
-    })),
-  };
-}
+  },
+});
+
+export type DbInvoice = db.Prisma.InvoiceGetPayload<{
+  select: typeof invoiceSelect;
+}>;
+
+export const fromDb = (invoice: DbInvoice): Invoice => ({
+  id: invoice.id,
+  reference: invoice.reference,
+  date: DateTime.fromJSDate(invoice.date),
+  period: {
+    start: DateTime.fromJSDate(invoice.periodStart),
+    end: DateTime.fromJSDate(invoice.periodEnd),
+  },
+  payee: {
+    name: invoice.payeeName,
+    address: invoice.payeeAddress,
+    description: invoice.payeeDescription,
+  },
+  client: {
+    name: invoice.clientName,
+    address: invoice.clientAddress,
+    currency: invoice.clientCurrency as Currency,
+  },
+  billing: {
+    increment: invoice.billingIncrement,
+    netTerms: invoice.billingNetTerms,
+    currency: invoice.billingCurrency as Currency,
+    exchangeRate: new Fraction(invoice.exchangeRateN, invoice.exchangeRateD),
+  },
+  lineItems: invoice.lineItems.map((li) => ({
+    id: li.id,
+    project: li.project,
+    task: li.task,
+    rate: new Fraction(li.rateN, li.rateD),
+    duration: Duration.fromISO(li.duration),
+  })),
+});
 
 export interface InvoiceComputations {
   dueDate: DateTime;

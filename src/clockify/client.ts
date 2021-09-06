@@ -3,8 +3,8 @@ import { buildUrl } from 'gigbook/util/url';
 import { DateTime, Duration } from 'luxon';
 
 export class ClockifyError extends Error {
-  public readonly status: number;
-  public readonly statusText: string;
+  readonly status: number;
+  readonly statusText: string;
 
   constructor(url: string, status: number, statusText: string) {
     super(`Request to ${url} failed: ${status} ${statusText}`);
@@ -18,7 +18,7 @@ export function isClockifyError(e: unknown): e is ClockifyError {
   return e instanceof ClockifyError;
 }
 
-export interface ClockifyAPIUser {
+interface ClockifyAPIUser {
   id: string;
   name: string;
   settings: {
@@ -26,7 +26,7 @@ export interface ClockifyAPIUser {
   };
 }
 
-export interface ClockifyAPIReport {
+interface ClockifyAPIReport {
   timeentries: {
     _id: string;
     clientId: string;
@@ -81,30 +81,32 @@ export interface ClockifyInvoice {
   };
 }
 
-export default class Clockify {
+export default class ClockifyApiClient {
+  static readonly apiKeyRegExp: RegExp = /^[a-z0-9]{48}$/i;
+
   private readonly apiKey: string;
 
   constructor(apiKey?: string) {
     this.apiKey = apiKey ?? '';
   }
 
-  async isValid(): Promise<boolean> {
-    if (!/^[a-z0-9]{48}$/i.test(this.apiKey)) {
+  async isValid(signal?: AbortSignal): Promise<boolean> {
+    if (!ClockifyApiClient.apiKeyRegExp.test(this.apiKey)) {
       return false;
     }
     try {
-      await this.get('user');
+      await this.get('user', {}, signal);
       return true;
-    } catch (e) {
-      if (isClockifyError(e) && e.status === 401) {
+    } catch (err) {
+      if (isClockifyError(err) && err.status === 401) {
         return false;
       }
-      throw e;
+      throw err;
     }
   }
 
-  async getUser(): Promise<ClockifyUser> {
-    const user = (await this.get('user')) as ClockifyAPIUser;
+  async getUser(signal?: AbortSignal): Promise<ClockifyUser> {
+    const user = (await this.get('user', {}, signal)) as ClockifyAPIUser;
     return {
       id: user.id,
       name: user.name,
@@ -112,21 +114,32 @@ export default class Clockify {
     };
   }
 
-  async getWorkspaces(): Promise<ClockifyWorkspace[]> {
-    const workspaces = (await this.get('workspaces')) as ClockifyWorkspace[];
+  async getWorkspaces(signal?: AbortSignal): Promise<ClockifyWorkspace[]> {
+    const workspaces = (await this.get(
+      'workspaces',
+      {},
+      signal,
+    )) as ClockifyWorkspace[];
     return workspaces.map((w) => ({
       id: w.id,
       name: w.name,
     }));
   }
 
-  async getClients(workspaceId: string): Promise<ClockifyClient[]> {
+  async getClients(
+    workspaceId: string,
+    signal?: AbortSignal,
+  ): Promise<ClockifyClient[]> {
     workspaceId = encodeURIComponent(workspaceId);
-    const clients = (await this.get(`workspaces/${workspaceId}/clients`, {
-      archived: false,
-      'sort-column': 'name',
-      'sort-order': 'ascending',
-    })) as ClockifyClient[];
+    const clients = (await this.get(
+      `workspaces/${workspaceId}/clients`,
+      {
+        archived: false,
+        'sort-column': 'name',
+        'sort-order': 'ascending',
+      },
+      signal,
+    )) as ClockifyClient[];
     return clients.map((c) => ({
       id: c.id,
       workspaceId: c.workspaceId,
@@ -139,6 +152,7 @@ export default class Clockify {
     clientId: string,
     from: DateTime,
     to: DateTime,
+    signal?: AbortSignal,
   ): Promise<ClockifyInvoice> {
     console.assert(from.zone.equals(to.zone));
     workspaceId = encodeURIComponent(workspaceId);
@@ -152,6 +166,7 @@ export default class Clockify {
         amountShown: 'EARNED',
         billable: true,
         detailedFilter: {
+          // TODO: handle pagination
           page: 1,
           pageSize: 200,
           options: {
@@ -164,6 +179,7 @@ export default class Clockify {
           status: 'ALL',
         },
       },
+      signal,
     )) as ClockifyAPIReport;
     const invoice: ClockifyInvoice = {
       period: {
@@ -208,26 +224,30 @@ export default class Clockify {
   private async getReport(
     resource: string,
     body: Record<string, unknown>,
+    signal?: AbortSignal,
   ): Promise<unknown> {
     return this.request(
       'POST',
-      buildUrl('https://reports.api.clockify.me', `/v1/${resource}`),
+      buildUrl(`https://reports.api.clockify.me/v1/${resource}`),
       {
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(body),
+        signal,
       },
     );
   }
 
   private async get(
     resource: string,
-    query?: Record<string, unknown>,
+    query: Record<string, unknown>,
+    signal?: AbortSignal,
   ): Promise<unknown> {
     return this.request(
       'GET',
-      buildUrl('https://api.clockify.me', `/api/v1/${resource}`, query),
+      buildUrl(`https://api.clockify.me/api/v1/${resource}`, query),
+      { signal },
     );
   }
 

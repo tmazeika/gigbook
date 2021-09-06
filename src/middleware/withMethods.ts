@@ -1,14 +1,19 @@
-import { NextApiHandler } from 'next';
+import { ApiHandler } from 'gigbook/models/apiResponse';
+import { sendError } from 'gigbook/util/apiResponse';
 
-export default function withMethods(
-  methods: string[],
-  next: NextApiHandler,
-): NextApiHandler {
+const httpMethods = ['DELETE', 'GET', 'PATCH', 'POST', 'PUT'] as const;
+
+type HttpMethod = typeof httpMethods[number];
+
+type Handlers = Partial<Record<HttpMethod, ApiHandler<any>>>;
+
+export default function withMethods(handlers: Handlers): ApiHandler<unknown> {
   return (req, res) => {
-    if (req.method && methods.includes(req.method)) {
+    const next = handlers[req.method as HttpMethod];
+    if (next) {
       return next(req, res);
     }
-    res.setHeader('Allow', methods.join(', '));
-    res.status(405).end();
+    res.setHeader('Allow', Object.keys(handlers).join(', '));
+    sendError(res, 405, 'Method not allowed');
   };
 }

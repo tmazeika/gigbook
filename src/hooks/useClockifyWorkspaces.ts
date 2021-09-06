@@ -1,19 +1,21 @@
 import { ClockifyWorkspace } from 'gigbook/clockify/client';
-import useClockify from 'gigbook/hooks/useClockify';
+import useClockifyApiClient from 'gigbook/hooks/useClockifyApiClient';
+import useSignal from 'gigbook/hooks/useSignal';
 import { useEffect, useState } from 'react';
 
 export default function useClockifyWorkspaces():
   | ClockifyWorkspace[]
   | undefined {
-  const clockify = useClockify();
+  const signal = useSignal();
+  const clockify = useClockifyApiClient();
   const [workspaces, setWorkspaces] = useState<ClockifyWorkspace[]>();
 
   useEffect(() => {
     if (clockify) {
-      clockify.getWorkspaces().then(setWorkspaces).catch(console.error);
+      clockify.getWorkspaces(signal).then(setWorkspaces).catch(console.error);
     }
     return () => setWorkspaces(undefined);
-  }, [clockify]);
+  }, [signal, clockify]);
 
   return workspaces;
 }

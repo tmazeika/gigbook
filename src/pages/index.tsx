@@ -1,12 +1,12 @@
-import ClockifyApiKeyButton from 'gigbook/components/clockifyApiKeyButton';
-import ClockifyEntitySelect from 'gigbook/components/clockifyEntitySelect';
-import ClockifyImportButton from 'gigbook/components/clockifyImportButton';
-import DateInput from 'gigbook/components/dateInput';
-import Layout from 'gigbook/components/layout';
-import LineItemsTable from 'gigbook/components/lineItemsTable';
-import NumberInput from 'gigbook/components/numberInput';
-import SelectInput from 'gigbook/components/selectInput';
-import TextInput from 'gigbook/components/textInput';
+import ClockifyApiKeyButton from 'gigbook/components/clockify/ClockifyApiKeyButton';
+import ClockifyImportButton from 'gigbook/components/clockify/ClockifyImportButton';
+import ClockifySelectInput from 'gigbook/components/clockify/ClockifySelectInput';
+import CurrencySelectInput from 'gigbook/components/forms/CurrencySelectInput';
+import DateInput from 'gigbook/components/forms/DateInput';
+import NumberInput from 'gigbook/components/forms/NumberInput';
+import TextInput from 'gigbook/components/forms/TextInput';
+import Layout from 'gigbook/components/Layout';
+import LineItemsTable from 'gigbook/components/LineItemsTable';
 import useClockifyClients from 'gigbook/hooks/useClockifyClients';
 import useClockifyWorkspaces from 'gigbook/hooks/useClockifyWorkspaces';
 import useInvoiceForm from 'gigbook/hooks/useInvoiceForm';
@@ -171,13 +171,8 @@ export default function Index(): JSX.Element {
               controlId="client-currency"
               label="Preferred Currency"
             >
-              <SelectInput
+              <CurrencySelectInput
                 controller={form.control('clientCurrency')}
-                options={{
-                  usd: 'USD',
-                  gbp: 'GBP',
-                  jpy: 'JPY',
-                }}
               />
             </FloatingLabel>
           </Col>
@@ -219,13 +214,8 @@ export default function Index(): JSX.Element {
           <Col>
             <Form.Group controlId="billing-currency">
               <Form.Label>Currency</Form.Label>
-              <SelectInput
+              <CurrencySelectInput
                 controller={form.control('billingCurrency')}
-                options={{
-                  gbp: 'GBP',
-                  usd: 'USD',
-                  jpy: 'JPY',
-                }}
               />
             </Form.Group>
           </Col>
@@ -236,7 +226,7 @@ export default function Index(): JSX.Element {
             <ClockifyApiKeyButton size="sm" />
           </Col>
           <Col xs="auto">
-            <ClockifyEntitySelect
+            <ClockifySelectInput
               size="sm"
               entities={workspaces}
               value={selectedWorkspace}
@@ -244,11 +234,11 @@ export default function Index(): JSX.Element {
             />
           </Col>
           <Col xs="auto">
-            <ClockifyEntitySelect
+            <ClockifySelectInput
               size="sm"
               entities={clients}
               value={selectedClient}
-              onChange={selectClient}
+              onChange={(e) => selectClient(e)}
             />
           </Col>
           <Col xs="auto">

@@ -1,4 +1,5 @@
 import 'bootstrap/dist/css/bootstrap.min.css';
+import { extFetcher as fetcher } from 'gigbook/util/fetch';
 import type { Session } from 'next-auth';
 import { Provider as AuthProvider } from 'next-auth/client';
 import type { AppProps as NextAppProps } from 'next/app';
@@ -13,25 +14,15 @@ type SessionAppProps = AppProps<{
   session?: Session;
 }>;
 
-export default function App({
+export default function GigBookApp({
   Component,
   pageProps,
 }: SessionAppProps): JSX.Element {
   return (
-    <SWRConfig value={{ fetcher }}>
-      <AuthProvider session={pageProps.session}>
+    <AuthProvider session={pageProps.session}>
+      <SWRConfig value={{ fetcher }}>
         <Component {...pageProps} />
-      </AuthProvider>
-    </SWRConfig>
+      </SWRConfig>
+    </AuthProvider>
   );
-}
-
-function fetcher(resource: RequestInfo, init?: RequestInit) {
-  return fetch(resource, init).then(async (res) => {
-    const body: unknown = await res.json();
-    if (!res.ok) {
-      throw body;
-    }
-    return body;
-  });
 }

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 
 export interface PromisesManager {
   /**
@@ -21,7 +21,6 @@ export function isCanceledError(e: unknown): e is CanceledError {
 
 class CancelablePromise<T> extends Promise<T> {
   isCanceled = false;
-  cancelFn?: () => void;
 
   constructor(
     executor: (
@@ -36,6 +35,8 @@ class CancelablePromise<T> extends Promise<T> {
     this.isCanceled = true;
     this.cancelFn?.();
   }
+
+  cancelFn?(): void;
 }
 
 export default function usePromises(): PromisesManager {
@@ -47,17 +48,21 @@ export default function usePromises(): PromisesManager {
     },
     [],
   );
-  const run = useCallback(<T>(promise: Promise<T>, suppressCancel = true) => {
-    const cancelable = makeCancelable(promise, suppressCancel);
-    const tracked = trackedRef.current;
-    tracked.push(cancelable);
-    return cancelable.finally(() => {
-      if (!cancelable.isCanceled) {
-        tracked.splice(tracked.indexOf(cancelable), 1);
-      }
-    });
-  }, []);
-  return { run };
+  return useMemo(
+    () => ({
+      run<T>(promise: Promise<T>, suppressCancel = true) {
+        const cancelable = makeCancelable(promise, suppressCancel);
+        const tracked = trackedRef.current;
+        tracked.push(cancelable);
+        return cancelable.finally(() => {
+          if (!cancelable.isCanceled) {
+            tracked.splice(tracked.indexOf(cancelable), 1);
+          }
+        });
+      },
+    }),
+    [],
+  );
 }
 
 function makeCancelable<T>(

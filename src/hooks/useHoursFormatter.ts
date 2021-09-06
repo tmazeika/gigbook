@@ -14,6 +14,6 @@ export class HoursFormatter extends Intl.NumberFormat {
 }
 
 export default function useHoursFormatter(): HoursFormatter {
-  const i18n = useI18n();
-  return useMemo(() => new HoursFormatter(i18n.locale), [i18n.locale]);
+  const { locale } = useI18n();
+  return useMemo(() => new HoursFormatter(locale), [locale]);
 }

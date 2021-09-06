@@ -1,19 +1,24 @@
 import { ClockifyClient } from 'gigbook/clockify/client';
-import useClockify from 'gigbook/hooks/useClockify';
+import useClockifyApiClient from 'gigbook/hooks/useClockifyApiClient';
+import useSignal from 'gigbook/hooks/useSignal';
 import { useEffect, useState } from 'react';
 
 export default function useClockifyClients(
   workspaceId?: string,
 ): ClockifyClient[] | undefined {
-  const clockify = useClockify();
+  const signal = useSignal();
+  const clockify = useClockifyApiClient();
   const [clients, setClients] = useState<ClockifyClient[]>();
 
   useEffect(() => {
     if (clockify && workspaceId) {
-      clockify.getClients(workspaceId).then(setClients).catch(console.error);
+      clockify
+        .getClients(workspaceId, signal)
+        .then(setClients)
+        .catch(console.error);
     }
     return () => setClients(undefined);
-  }, [clockify, workspaceId]);
+  }, [signal, clockify, workspaceId]);
 
   return clients;
 }

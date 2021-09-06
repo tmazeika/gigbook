@@ -1,6 +1,6 @@
-import Layout from 'gigbook/components/layout';
+import Layout from 'gigbook/components/Layout';
 import useI18n from 'gigbook/hooks/useI18n';
-import useInvoiceList from 'gigbook/hooks/useInvoiceList';
+import useInvoices from 'gigbook/hooks/useInvoices';
 import { InvoiceAndComputations } from 'gigbook/models/invoice';
 import { useRouter } from 'next/router';
 import Table from 'react-bootstrap/Table';
@@ -12,7 +12,8 @@ const StyledTr = styled.tr`
 
 export default function Index(): JSX.Element {
   const { locale } = useI18n();
-  const invoices = getSortedInvoices(useInvoiceList());
+  const { invoices: unsortedInvoices } = useInvoices();
+  const invoices = getSortedInvoices(unsortedInvoices);
   const router = useRouter();
 
   return (
@@ -36,18 +37,25 @@ export default function Index(): JSX.Element {
               }}
             >
               <td>
-                {invoice.date.toLocaleString({ locale, dateStyle: 'medium' })}
+                {invoice.date.toLocaleString(
+                  { dateStyle: 'medium' },
+                  { locale },
+                )}
               </td>
               <td>
-                {invoice.period.start.toLocaleString({
-                  locale,
-                  dateStyle: 'short',
-                })}{' '}
+                {invoice.period.start.toLocaleString(
+                  {
+                    dateStyle: 'short',
+                  },
+                  { locale },
+                )}{' '}
                 &ndash;{' '}
-                {invoice.period.end.toLocaleString({
-                  locale,
-                  dateStyle: 'short',
-                })}
+                {invoice.period.end.toLocaleString(
+                  {
+                    dateStyle: 'short',
+                  },
+                  { locale },
+                )}
               </td>
               <td>{invoice.reference}</td>
               <td>{invoice.client.name}</td>

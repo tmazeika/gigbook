@@ -1,4 +1,3 @@
-import { DocumentInitialProps } from 'next/dist/next-server/lib/utils';
 import Document, {
   DocumentContext,
   Head,
@@ -8,10 +7,8 @@ import Document, {
 } from 'next/document';
 import { ServerStyleSheet } from 'styled-components';
 
-export default class extends Document {
-  static async getInitialProps(
-    ctx: DocumentContext,
-  ): Promise<DocumentInitialProps> {
+export default class GigBookDocument extends Document {
+  static async getInitialProps(ctx: DocumentContext) {
     const sheet = new ServerStyleSheet();
     const originalRenderPage = ctx.renderPage;
     try {
@@ -35,13 +32,17 @@ export default class extends Document {
     }
   }
 
-  render = (): JSX.Element => (
-    <Html lang="en">
-      <Head />
-      <body>
-        <Main />
-        <NextScript />
-      </body>
-    </Html>
-  );
+  render(): JSX.Element {
+    return (
+      <Html lang="en">
+        <Head>
+          <link rel="icon" href="/favicon.ico" sizes="any" />
+        </Head>
+        <body>
+          <Main />
+          <NextScript />
+        </body>
+      </Html>
+    );
+  }
 }

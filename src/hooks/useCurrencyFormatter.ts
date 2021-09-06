@@ -16,9 +16,9 @@ export class CurrencyFormatter extends Intl.NumberFormat {
 export default function useCurrencyFormatter(
   currency?: string,
 ): CurrencyFormatter | undefined {
-  const i18n = useI18n();
+  const { locale } = useI18n();
   return useMemo(
-    () => (currency ? new CurrencyFormatter(currency, i18n.locale) : undefined),
-    [currency, i18n.locale],
+    () => (currency ? new CurrencyFormatter(currency, locale) : undefined),
+    [currency, locale],
   );
 }
