@@ -1,1 +1,0 @@
-release: prisma migrate deploy

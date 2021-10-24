@@ -1,0 +1,22 @@
+services:
+  web:
+    build: .
+    environment:
+      MONGO_URL: mongodb://db:5432
+    ports:
+    - "3000:3000"
+    volumes:
+    - /app/.next/
+    - ./:/app/:cached
+  db:
+    image: mongo:5
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: pass
+    ports:
+    - "27017:27017"
+    volumes:
+    - db:/data/db/
+volumes:
+  db:

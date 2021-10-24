@@ -1,267 +1,131 @@
-import ClockifyApiKeyButton from 'gigbook/components/clockify/ClockifyApiKeyButton';
-import ClockifyImportButton from 'gigbook/components/clockify/ClockifyImportButton';
-import ClockifySelectInput from 'gigbook/components/clockify/ClockifySelectInput';
-import CurrencySelectInput from 'gigbook/components/forms/CurrencySelectInput';
-import DateInput from 'gigbook/components/forms/DateInput';
-import NumberInput from 'gigbook/components/forms/NumberInput';
-import TextInput from 'gigbook/components/forms/TextInput';
-import Layout from 'gigbook/components/Layout';
-import LineItemsTable from 'gigbook/components/LineItemsTable';
-import useClockifyClients from 'gigbook/hooks/useClockifyClients';
-import useClockifyWorkspaces from 'gigbook/hooks/useClockifyWorkspaces';
-import useInvoiceForm from 'gigbook/hooks/useInvoiceForm';
-import useSelect from 'gigbook/hooks/useSelect';
-
-import { DateTime, Duration } from 'luxon';
-import { FloatingLabel } from 'react-bootstrap';
-import Button from 'react-bootstrap/Button';
-import ButtonGroup from 'react-bootstrap/ButtonGroup';
-import Col from 'react-bootstrap/Col';
-import Form from 'react-bootstrap/Form';
-import InputGroup from 'react-bootstrap/InputGroup';
-import Row from 'react-bootstrap/Row';
-
-const numberFormatter = new Intl.NumberFormat(undefined, {
-  maximumFractionDigits: 2,
-});
-
-const today = DateTime.now().startOf('day');
-const lastMonth = today
-  .minus(Duration.fromObject({ months: 1 }))
-  .startOf('month');
+import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/Edit';
+import AppBar from '@mui/material/AppBar';
+import Button from '@mui/material/Button';
+import Container from '@mui/material/Container';
+import Divider from '@mui/material/Divider';
+import IconButton from '@mui/material/IconButton';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+import Toolbar from '@mui/material/Toolbar';
+import Typography from '@mui/material/Typography';
 
 export default function Index(): JSX.Element {
-  const form = useInvoiceForm('newInvoiceForm');
-
-  const periodDiff = numberFormatter.format(
-    form.values.periodEnd.diff(form.values.periodStart, ['days', 'hours'])
-      .days + 1,
-  );
-  const dueDate = form.values.date
-    .plus(Duration.fromObject({ days: form.values.billingNetTerms.n ?? 0 }))
-    .toLocaleString({ dateStyle: 'medium' });
-  const billingIncrementOk = form.values.billingIncrement.n
-    ? Number.isInteger((form.values.billingIncrement.n / 60) * 100)
-    : true;
-
-  const workspaces = useClockifyWorkspaces();
-  const [selectedWorkspace, selectWorkspace] = useSelect(workspaces);
-  const clients = useClockifyClients(
-    workspaces?.find((w) => w.id === selectedWorkspace?.id)?.id,
-  );
-  const [selectedClient, selectClient] = useSelect(clients);
-
   return (
-    <Layout>
-      <Form noValidate onSubmit={(e) => form.onSubmit(e)}>
-        <h3>Invoice</h3>
-        <Row className="mb-3">
-          <Col>
-            <FloatingLabel controlId="reference-input" label="Reference">
-              <TextInput controller={form.control('reference')} />
-            </FloatingLabel>
-          </Col>
-          <Col>
-            <Form.Group controlId="date">
-              <FloatingLabel label="Date">
-                <DateInput max={today} controller={form.control('date')} />
-              </FloatingLabel>
-              <Form.Text>
-                <ButtonGroup size="sm">
-                  <Button
-                    variant="link"
-                    onClick={() =>
-                      form.set(
-                        'date',
-                        today.minus(Duration.fromObject({ days: 1 })),
-                      )
-                    }
-                  >
-                    Yesterday
-                  </Button>
-                  <Button
-                    variant="link"
-                    onClick={() => form.set('date', today.startOf('month'))}
-                  >
-                    Start of Month
-                  </Button>
-                </ButtonGroup>
-              </Form.Text>
-            </Form.Group>
-          </Col>
-          <Col>
-            <Form.Group controlId="period-start">
-              <FloatingLabel label="Period Start">
-                <DateInput
-                  max={form.values.periodEnd}
-                  controller={form.control('periodStart')}
-                />
-              </FloatingLabel>
-              <Form.Text>
-                <ButtonGroup size="sm">
-                  <Button
-                    variant="link"
-                    onClick={() => {
-                      form.set('periodStart', lastMonth);
-                      form.set(
-                        'periodEnd',
-                        lastMonth.endOf('month').startOf('day'),
-                      );
-                    }}
-                  >
-                    Last Month
-                  </Button>
-                  <Button
-                    variant="link"
-                    onClick={() => {
-                      form.set('periodStart', today.startOf('month'));
-                      form.set(
-                        'periodEnd',
-                        today.endOf('month').startOf('day'),
-                      );
-                    }}
-                  >
-                    This Month
-                  </Button>
-                </ButtonGroup>
-              </Form.Text>
-            </Form.Group>
-          </Col>
-          <Col>
-            <Form.Group controlId="period-end">
-              <FloatingLabel label="Period End">
-                <DateInput
-                  min={form.values.periodStart}
-                  controller={form.control('periodEnd')}
-                />
-              </FloatingLabel>
-              <Form.Text muted>{periodDiff} day period</Form.Text>
-            </Form.Group>
-          </Col>
-        </Row>
-        <h3>Payee</h3>
-        <Row className="mb-3">
-          <Col>
-            <FloatingLabel controlId="payee-name" label="Name">
-              <TextInput controller={form.control('payeeName')} />
-            </FloatingLabel>
-          </Col>
-          <Col>
-            <FloatingLabel controlId="payee-description" label="Description">
-              <TextInput controller={form.control('payeeDescription')} />
-            </FloatingLabel>
-          </Col>
-        </Row>
-        <Row className="mb-3">
-          <Col>
-            <FloatingLabel controlId="payee-address" label="Address">
-              <TextInput controller={form.control('payeeAddress')} textArea />
-            </FloatingLabel>
-          </Col>
-        </Row>
-        <h3>Client</h3>
-        <Row className="mb-3">
-          <Col>
-            <FloatingLabel controlId="client-name" label="Name">
-              <TextInput controller={form.control('clientName')} />
-            </FloatingLabel>
-          </Col>
-          <Col>
-            <FloatingLabel
-              controlId="client-currency"
-              label="Preferred Currency"
-            >
-              <CurrencySelectInput
-                controller={form.control('clientCurrency')}
-              />
-            </FloatingLabel>
-          </Col>
-        </Row>
-        <Row className="mb-3">
-          <Col>
-            <FloatingLabel controlId="client-address" label="Address">
-              <TextInput controller={form.control('clientAddress')} textArea />
-            </FloatingLabel>
-          </Col>
-        </Row>
-        <h3>Billing</h3>
-        <Row className="mb-3">
-          <Col>
-            <Form.Group controlId="billing-increment">
-              <Form.Label>Increment</Form.Label>
-              <InputGroup>
-                <NumberInput controller={form.control('billingIncrement')} />
-                <InputGroup.Text>minutes</InputGroup.Text>
-              </InputGroup>
-              {!billingIncrementOk && (
-                <Form.Text className="text-warning">
-                  <strong>Warning:</strong> {form.values.billingIncrement.n}
-                  &#8202;&#247;&#8202;60 has more than two decimal places
-                </Form.Text>
-              )}
-            </Form.Group>
-          </Col>
-          <Col>
-            <Form.Group controlId="billing-net-terms">
-              <Form.Label>Net Terms</Form.Label>
-              <InputGroup>
-                <NumberInput controller={form.control('billingNetTerms')} />
-                <InputGroup.Text>days</InputGroup.Text>
-              </InputGroup>
-              <Form.Text muted>Due by {dueDate}</Form.Text>
-            </Form.Group>
-          </Col>
-          <Col>
-            <Form.Group controlId="billing-currency">
-              <Form.Label>Currency</Form.Label>
-              <CurrencySelectInput
-                controller={form.control('billingCurrency')}
-              />
-            </Form.Group>
-          </Col>
-        </Row>
-        <h3>Line Items</h3>
-        <Row className="mb-2 g-2">
-          <Col xs="auto">
-            <ClockifyApiKeyButton size="sm" />
-          </Col>
-          <Col xs="auto">
-            <ClockifySelectInput
-              size="sm"
-              entities={workspaces}
-              value={selectedWorkspace}
-              onChange={selectWorkspace}
-            />
-          </Col>
-          <Col xs="auto">
-            <ClockifySelectInput
-              size="sm"
-              entities={clients}
-              value={selectedClient}
-              onChange={(e) => selectClient(e)}
-            />
-          </Col>
-          <Col xs="auto">
-            <ClockifyImportButton
-              size="sm"
-              startDate={form.values.periodStart}
-              endDate={form.values.periodEnd}
-              workspaceId={selectedWorkspace?.id}
-              clientId={selectedClient?.id}
-              lineItems={form.values.lineItems}
-              onChange={(li) => form.set('lineItems', li ?? [])}
-            />
-          </Col>
-        </Row>
-        <LineItemsTable
-          lineItems={form.values.lineItems}
-          currency={form.values.billingCurrency}
-          increment={form.values.billingIncrement.n ?? 0}
-        />
-        <Button variant="primary" type="submit">
-          Generate
-        </Button>
-      </Form>
-    </Layout>
+    <>
+      <AppBar position="static">
+        <Toolbar>
+          <Typography variant="h6" component="div">
+            GigBook
+          </Typography>
+        </Toolbar>
+      </AppBar>
+      <Toolbar />
+      <Container>
+        <Typography variant="h4" gutterBottom>
+          Chart of Accounts
+        </Typography>
+        <Divider />
+        <TableContainer>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Number</TableCell>
+                <TableCell>Account Description</TableCell>
+                <TableCell>Account Type</TableCell>
+                <TableCell>Statement</TableCell>
+                <TableCell align="right">
+                  <Button>New Account</Button>
+                </TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              <TableRow>
+                <TableCell>1010</TableCell>
+                <TableCell>Cash</TableCell>
+                <TableCell>Assets</TableCell>
+                <TableCell>Balance Sheet</TableCell>
+                <TableCell align="right">
+                  <IconButton>
+                    <EditIcon />
+                  </IconButton>
+                  <IconButton>
+                    <DeleteIcon />
+                  </IconButton>
+                </TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell>1020</TableCell>
+                <TableCell>Accounts Receivable</TableCell>
+                <TableCell>Assets</TableCell>
+                <TableCell>Balance Sheet</TableCell>
+                <TableCell align="right">
+                  <IconButton>
+                    <EditIcon />
+                  </IconButton>
+                  <IconButton>
+                    <DeleteIcon />
+                  </IconButton>
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </TableContainer>
+        <Toolbar />
+        <Typography variant="h4" gutterBottom>
+          Chart of Accounts
+        </Typography>
+        <Divider />
+        <TableContainer>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Number</TableCell>
+                <TableCell>Account Description</TableCell>
+                <TableCell>Account Type</TableCell>
+                <TableCell>Statement</TableCell>
+                <TableCell align="right">
+                  <Button>New Account</Button>
+                </TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              <TableRow>
+                <TableCell>1010</TableCell>
+                <TableCell>Cash</TableCell>
+                <TableCell>Assets</TableCell>
+                <TableCell>Balance Sheet</TableCell>
+                <TableCell align="right">
+                  <IconButton>
+                    <EditIcon />
+                  </IconButton>
+                  <IconButton>
+                    <DeleteIcon />
+                  </IconButton>
+                </TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell>1020</TableCell>
+                <TableCell>Accounts Receivable</TableCell>
+                <TableCell>Assets</TableCell>
+                <TableCell>Balance Sheet</TableCell>
+                <TableCell align="right">
+                  <IconButton>
+                    <EditIcon />
+                  </IconButton>
+                  <IconButton>
+                    <DeleteIcon />
+                  </IconButton>
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Container>
+    </>
   );
 }

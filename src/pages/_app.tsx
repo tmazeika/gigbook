@@ -1,28 +1,32 @@
-import 'bootstrap/dist/css/bootstrap.min.css';
-import { extFetcher as fetcher } from 'gigbook/util/fetch';
-import type { Session } from 'next-auth';
-import { Provider as AuthProvider } from 'next-auth/client';
-import type { AppProps as NextAppProps } from 'next/app';
-import React from 'react';
-import { SWRConfig } from 'swr';
+import '@fontsource/roboto/300.css';
+import '@fontsource/roboto/400.css';
+import '@fontsource/roboto/500.css';
+import '@fontsource/roboto/700.css';
+import CssBaseline from '@mui/material/CssBaseline';
+import { createTheme, ThemeProvider } from '@mui/material/styles';
+import { AppProps } from 'next/app';
+import Head from 'next/head';
 
-type AppProps<T> = Omit<NextAppProps<T>, 'pageProps'> & {
-  pageProps: T;
-};
-
-type SessionAppProps = AppProps<{
-  session?: Session;
-}>;
+const theme = createTheme({
+  palette: {
+    mode: 'light',
+  },
+});
 
 export default function GigBookApp({
   Component,
   pageProps,
-}: SessionAppProps): JSX.Element {
+}: AppProps): JSX.Element {
   return (
-    <AuthProvider session={pageProps.session}>
-      <SWRConfig value={{ fetcher }}>
+    <>
+      <Head>
+        <meta name="viewport" content="initial-scale=1, width=device-width" />
+        <title>GigBook</title>
+      </Head>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
         <Component {...pageProps} />
-      </SWRConfig>
-    </AuthProvider>
+      </ThemeProvider>
+    </>
   );
 }
