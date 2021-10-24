@@ -1,25 +1,20 @@
 import { Prisma } from '@prisma/client';
-import { currencySchema } from 'gigbook/models/currency';
-import {
-  GetTransformFromSchema,
-  number,
-  object,
-  string,
-} from 'gigbook/validation';
+import { $currency } from 'gigbook/models/currency';
+import { $number, $object, $string, GetSchemaMappedType } from 'jval';
 
-export const invoicePrefillSchema = object({
-  payeeName: string(),
-  payeeDescription: string(),
-  payeeAddress: string(),
-  clientName: string(),
-  clientAddress: string(),
-  clientCurrency: currencySchema,
-  billingIncrement: number(),
-  billingNetTerms: number(),
-  billingCurrency: currencySchema,
+export const invoicePrefillSchema = $object({
+  payeeName: $string(),
+  payeeDescription: $string(),
+  payeeAddress: $string(),
+  clientName: $string(),
+  clientAddress: $string(),
+  clientCurrency: $currency(),
+  billingIncrement: $number(),
+  billingNetTerms: $number(),
+  billingCurrency: $currency(),
 }).partial();
 
-export type InvoicePrefill = GetTransformFromSchema<
+export type InvoicePrefill = GetSchemaMappedType<
   typeof invoicePrefillSchema
 >;
 

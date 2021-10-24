@@ -16,5 +16,3 @@ export type Serializable =
   | Fraction
   | Map<Serializable, Serializable>
   | NumberInputValue;
-
-export type LossySerializable = Serializable | { toJSON(): LossySerializable };

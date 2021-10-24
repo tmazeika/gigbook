@@ -1,11 +1,20 @@
+import { Prisma } from '@prisma/client';
 import ClockifyApiClient from 'gigbook/clockify/client';
 import db from 'gigbook/db';
 import withAuth from 'gigbook/middleware/withAuth';
 import withBody from 'gigbook/middleware/withBody';
 import withMethods from 'gigbook/middleware/withMethods';
 import { ApiHandler } from 'gigbook/models/apiResponse';
-import { User, userSchema, userSelect } from 'gigbook/models/user';
+import { User, userSchema } from 'gigbook/models/user';
 import { sendError, sendJson } from 'gigbook/util/apiResponse';
+
+const userSelect = Prisma.validator<Prisma.UserSelect>()({
+  id: true,
+  clockifyApiKey: true,
+  payeeName: true,
+  payeeAddress: true,
+  payeeDescription: true,
+});
 
 const GET: ApiHandler<User> = withAuth((user) => async (req, res) => {
   if (String(req.query['userId']) !== user.id) {

@@ -1,6 +1,6 @@
 import { ApiHandler } from 'gigbook/models/apiResponse';
 import { sendError } from 'gigbook/util/apiResponse';
-import { Schema } from 'gigbook/validation';
+import { Schema } from 'jval';
 
 export default function withBody<R, T, U>(
   schema: Schema<T, U>,
@@ -8,8 +8,8 @@ export default function withBody<R, T, U>(
 ): ApiHandler<R> {
   return async (req, res) => {
     const body: unknown = req.body;
-    if (schema.isType(body)) {
-      return next(schema.transform(body))(req, res);
+    if (schema.isType(body) && schema.isValid(body)) {
+      return next(schema.map(body))(req, res);
     }
     sendError(res, 400, 'Invalid request body');
   };

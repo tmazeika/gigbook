@@ -1,10 +1,10 @@
-import { encode } from 'gigbook/json';
+import { codec } from 'gigbook/json';
 import { Client } from 'gigbook/models/client';
 import { Invoice } from 'gigbook/models/invoice';
 import { InvoicePrefill } from 'gigbook/models/invoicePrefill';
 import { User } from 'gigbook/models/user';
 import { extFetcher } from 'gigbook/util/fetch';
-import { LossySerializable } from 'gigbook/util/serialization';
+import { Serializable } from 'gigbook/util/serialization';
 import { buildRelUrl, urlEnc } from 'gigbook/util/url';
 
 const clientsCol = '/api/clients';
@@ -111,7 +111,7 @@ interface SendJsonOptions {
   path: string | [string, string];
   query?: Record<string, unknown>;
   method?: string;
-  body?: LossySerializable;
+  body?: Serializable;
   signal: AbortSignal;
 }
 
@@ -126,7 +126,7 @@ export const request = <R>({
   return extFetcher(buildRelUrl(path, query), {
     method,
     headers: body ? { 'Content-Type': 'application/json' } : undefined,
-    body: body ? encode(body) : undefined,
+    body: body ? codec.encode(body) : undefined,
     signal,
   }).then((body) => body as R);
 };

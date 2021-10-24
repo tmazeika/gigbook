@@ -21,8 +21,4 @@ export default class NumberInputValue {
   static fromNumber(number: number): NumberInputValue {
     return new NumberInputValue(String(number), number, true);
   }
-
-  toJSON(): number | null {
-    return this.isValid ? this.n : null;
-  }
 }

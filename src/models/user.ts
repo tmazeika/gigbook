@@ -1,17 +1,17 @@
 import { Prisma } from '@prisma/client';
 import ClockifyApiClient from 'gigbook/clockify/client';
-import { GetTransformFromSchema, object, string } from 'gigbook/validation';
-import { nonemptyString } from 'gigbook/validation/ext';
+import { $nonemptyString } from 'gigbook/validation/nonemptyString';
+import { $null, $object, $string, $undefined, GetSchemaMappedType } from 'jval';
 
-export const userSchema = object({
-  id: string().optional(),
-  clockifyApiKey: string({ regExp: ClockifyApiClient.apiKeyRegExp }).nullable(),
-  payeeName: nonemptyString().nullable(),
-  payeeAddress: nonemptyString().nullable(),
-  payeeDescription: nonemptyString().nullable(),
+export const userSchema = $object({
+  id: $string().or($undefined()),
+  clockifyApiKey: $string().regExp(ClockifyApiClient.apiKeyRegExp).or($null()),
+  payeeName: $nonemptyString().or($null()),
+  payeeAddress: $nonemptyString().or($null()),
+  payeeDescription: $nonemptyString().or($null()),
 });
 
-export type User = GetTransformFromSchema<typeof userSchema>;
+export type User = GetSchemaMappedType<typeof userSchema>;
 
 export const userSelect = Prisma.validator<Prisma.UserSelect>()({
   id: true,

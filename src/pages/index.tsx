@@ -13,10 +13,10 @@ import useInvoiceForm from 'gigbook/hooks/useInvoiceForm';
 import useSelect from 'gigbook/hooks/useSelect';
 
 import { DateTime, Duration } from 'luxon';
+import { FloatingLabel } from 'react-bootstrap';
 import Button from 'react-bootstrap/Button';
 import ButtonGroup from 'react-bootstrap/ButtonGroup';
 import Col from 'react-bootstrap/Col';
-import FloatingLabel from 'react-bootstrap/FloatingLabel';
 import Form from 'react-bootstrap/Form';
 import InputGroup from 'react-bootstrap/InputGroup';
 import Row from 'react-bootstrap/Row';

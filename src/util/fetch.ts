@@ -1,11 +1,11 @@
-import { decode } from 'gigbook/json';
+import { codec } from 'gigbook/json';
 
 export const extFetcher = (resource: RequestInfo, init?: RequestInit) =>
   fetch(resource, init).then(async (res) => {
     if (res.status === 204) {
       return undefined;
     }
-    const body: unknown = decode(await res.text());
+    const body: unknown = codec.decode(await res.text());
     if (!res.ok) {
       throw body;
     }

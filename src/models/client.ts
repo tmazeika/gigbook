@@ -1,16 +1,16 @@
 import { Prisma } from '@prisma/client';
-import { Currency, currencySchema } from 'gigbook/models/currency';
-import { GetTransformFromSchema, object, string } from 'gigbook/validation';
-import { nonemptyString } from 'gigbook/validation/ext';
+import { $currency, Currency } from 'gigbook/models/currency';
+import { $nonemptyString } from 'gigbook/validation/nonemptyString';
+import { $object, $string, $undefined, GetSchemaMappedType } from 'jval';
 
-export const clientSchema = object({
-  id: string().optional(),
-  name: nonemptyString(),
-  address: nonemptyString(),
-  currency: currencySchema,
+export const clientSchema = $object({
+  id: $string().or($undefined()),
+  name: $nonemptyString(),
+  address: $nonemptyString(),
+  currency: $currency(),
 });
 
-export type Client = GetTransformFromSchema<typeof clientSchema>;
+export type Client = GetSchemaMappedType<typeof clientSchema>;
 
 export const clientSelect = Prisma.validator<Prisma.ClientSelect>()({
   id: true,

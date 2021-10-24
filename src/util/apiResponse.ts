@@ -1,12 +1,12 @@
-import { encode } from 'gigbook/json';
+import { codec } from 'gigbook/json/codec';
 import { ApiResponse } from 'gigbook/models/apiResponse';
 
 export function sendJson<R>(res: ApiResponse<R>, value: R, code = 200): void {
   res.setHeader('Content-Type', 'application/json');
-  res.status(code).send(encode(value) as unknown as R);
+  res.status(code).send(codec.encode(value) as unknown as R);
 }
 
-export function sendCreated<R extends { id: string | undefined }>(
+export function sendCreated<R extends { id?: string | undefined }>(
   res: ApiResponse<R>,
   value: R,
   collectionLocation: string,

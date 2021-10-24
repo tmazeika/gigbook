@@ -2,61 +2,60 @@ import * as db from '@prisma/client';
 import Fraction from 'fraction.js';
 import { CurrencyFormatter } from 'gigbook/hooks/useCurrencyFormatter';
 import { HoursFormatter } from 'gigbook/hooks/useHoursFormatter';
-import { Currency, currencySchema } from 'gigbook/models/currency';
+import { $currency, Currency } from 'gigbook/models/currency';
+import { $dateTime } from 'gigbook/validation/dateTime';
+import { $duration } from 'gigbook/validation/duration';
+import { $fraction } from 'gigbook/validation/fraction';
+import { $nonemptyString } from 'gigbook/validation/nonemptyString';
 import {
-  array,
-  GetTransformFromSchema,
-  number,
-  object,
-} from 'gigbook/validation';
-import {
-  dateTime,
-  duration,
-  fraction,
-  nonemptyString,
-} from 'gigbook/validation/ext';
+  $array,
+  $number,
+  $object,
+  $undefined,
+  GetSchemaMappedType,
+} from 'jval';
 import { DateTime, Duration } from 'luxon';
 
-export const invoiceLineItemSchema = object({
-  id: nonemptyString().optional(),
-  project: nonemptyString(),
-  task: nonemptyString(),
-  rate: fraction({ min: 0 }),
-  duration: duration({ min: Duration.fromObject({}) }),
+export const invoiceLineItemSchema = $object({
+  id: $nonemptyString().or($undefined()),
+  project: $nonemptyString(),
+  task: $nonemptyString(),
+  rate: $fraction({ min: 0 }),
+  duration: $duration({ min: 0 }),
 });
 
-export type InvoiceLineItem = GetTransformFromSchema<
+export type InvoiceLineItem = GetSchemaMappedType<
   typeof invoiceLineItemSchema
 >;
 
-export const invoiceSchema = object({
-  id: nonemptyString().optional(),
-  reference: nonemptyString(),
-  date: dateTime(),
-  period: object({
-    start: dateTime(),
-    end: dateTime(),
+export const invoiceSchema = $object({
+  id: $nonemptyString().or($undefined()),
+  reference: $nonemptyString(),
+  date: $dateTime(),
+  period: $object({
+    start: $dateTime(),
+    end: $dateTime(),
   }),
-  payee: object({
-    name: nonemptyString(),
-    description: nonemptyString(),
-    address: nonemptyString(),
+  payee: $object({
+    name: $nonemptyString(),
+    description: $nonemptyString(),
+    address: $nonemptyString(),
   }),
-  client: object({
-    name: nonemptyString(),
-    address: nonemptyString(),
-    currency: currencySchema,
+  client: $object({
+    name: $nonemptyString(),
+    address: $nonemptyString(),
+    currency: $currency(),
   }),
-  billing: object({
-    increment: number({ integer: true, min: 0 }),
-    netTerms: number({ integer: true }),
-    currency: currencySchema,
-    exchangeRate: fraction(),
+  billing: $object({
+    increment: $number().int().min(0),
+    netTerms: $number().int(),
+    currency: $currency(),
+    exchangeRate: $fraction(),
   }),
-  lineItems: array(invoiceLineItemSchema),
+  lineItems: $array(invoiceLineItemSchema),
 });
 
-export type Invoice = GetTransformFromSchema<typeof invoiceSchema>;
+export type Invoice = GetSchemaMappedType<typeof invoiceSchema>;
 
 export function createInvoice(id: string, userId: string, invoice: Invoice) {
   const exchangeRate = invoice.billing.exchangeRate;

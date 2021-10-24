@@ -13,10 +13,6 @@ interface Props {
 
 export default function CurrencySelectInput(props: Props): JSX.Element {
   return (
-    <SelectInput
-      className={props.className}
-      controller={props.controller}
-      options={options}
-    />
+    <SelectInput {...props} options={options} />
   );
 }
