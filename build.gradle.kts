@@ -20,3 +20,9 @@ javafx {
     version = "17"
     modules = listOf("javafx.controls")
 }
+
+tasks {
+    test {
+        useJUnitPlatform()
+    }
+}
