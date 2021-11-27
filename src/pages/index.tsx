@@ -19,7 +19,7 @@ export default function Index(): JSX.Element {
     <>
       <AppBar position="static">
         <Toolbar>
-          <Typography variant="h6" component="div">
+          <Typography variant='h6'>
             GigBook
           </Typography>
         </Toolbar>
@@ -27,18 +27,20 @@ export default function Index(): JSX.Element {
       <Toolbar />
       <Container>
         <Typography variant="h4" gutterBottom>
-          Chart of Accounts
+          Transactions
         </Typography>
         <Divider />
         <TableContainer>
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>Number</TableCell>
+                <TableCell>Date</TableCell>
+                <TableCell>Description</TableCell>
+                <TableCell>Description</TableCell>
                 <TableCell>Account Description</TableCell>
                 <TableCell>Account Type</TableCell>
                 <TableCell>Statement</TableCell>
-                <TableCell align="right">
+                <TableCell align='right'>
                   <Button>New Account</Button>
                 </TableCell>
               </TableRow>
