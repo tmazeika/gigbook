@@ -31,12 +31,12 @@ class SimpleStore<State, Action>(
                     from = -1
                     to = -1
                 }
-                val replaceToIdx = min(currentList.size, newList.size)
-                0.until(replaceToIdx).forEach { i ->
+                val replaceUntilIdx = min(currentList.size, newList.size)
+                0.until(replaceUntilIdx).forEach { i ->
                     if (currentList[i] !== newList[i]) {
                         if (from == -1) from = i
                         to = i + 1
-                        if (i == replaceToIdx - 1) replaceFromTo()
+                        if (i == replaceUntilIdx - 1) replaceFromTo()
                     } else if (from != -1) {
                         replaceFromTo()
                     }
@@ -44,8 +44,8 @@ class SimpleStore<State, Action>(
                 if (newList.size > currentList.size) {
                     currentList.addAll(
                         newList.subList(
-                            currentList.size,
-                            newList.size
+                            fromIndex = currentList.size,
+                            toIndex = newList.size
                         )
                     )
                 }
